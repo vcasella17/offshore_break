@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import Link from 'next/link'
 
 export default async function PlayersPage() {
   const { data: players, error } = await supabase
@@ -17,7 +18,9 @@ export default async function PlayersPage() {
       <ul className="space-y-2">
         {players?.map((player) => (
           <li key={player.id} className="border-b pb-2">
-            <span className="font-semibold">{player.name}</span>
+            <Link href={`/players/${player.id}`} className="font-semibold text-blue-700 hover:underline">
+              {player.name}
+            </Link>
             {' — '}
             <span className="text-gray-600">{player.position}</span>
           </li>
