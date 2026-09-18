@@ -1,73 +1,77 @@
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 
-export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+const PAGE_SIZE = 50
 
-  const { data: player, error: playerError } = await supabase
+export default async function PlayersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
+  const params = await searchParams
+  const currentPage = Math.max(1, parseInt(params.page ?? '1', 10) || 1)
+  const from = (currentPage - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  const { data: players, error, count } = await supabase
     .from('Player')
-    .select('id, name, position, team_id')
-    .eq('id', id)
-    .single()
+    .select('id, name, position, team_id', { count: 'exact' })
+    .order('name')
+    .range(from, to)
 
-  if (playerError || !player) {
-    return <div className="p-8 text-red-600">Player not found.</div>
+  if (error) {
+    return <div className="p-8 text-red-600">Error loading players: {error.message}</div>
   }
 
-  const { data: stats } = await supabase
-    .from('PlayerStats')
-    .select('*')
-    .eq('player_id', id)
-    .order('season', { ascending: false })
-
-  const latest = stats?.[0]
-  const isHitter = latest && latest.batting_avg !== null
-  const isPitcher = latest && latest.era !== null
+  const totalPlayers = count ?? 0
+  const totalPages = Math.ceil(totalPlayers / PAGE_SIZE)
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <Link href="/players" className="text-sm text-gray-500">&larr; Back to players</Link>
-      <h1 className="text-3xl font-bold mt-2 mb-1">{player.name}</h1>
-      <p className="text-gray-600 mb-6">{player.position}</p>
+    <div className="p-8 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-2">Players</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        Showing {from + 1}–{Math.min(to + 1, totalPlayers)} of {totalPlayers}
+      </p>
 
-      {!latest && <p>No stats available yet for this player.</p>}
+      <ul className="space-y-2 mb-8">
+        {players?.map((player) => (
+          <li key={player.id} className="border-b pb-2">
+            <Link href={`/players/${player.id}`} className="font-semibold text-blue-700 hover:underline">
+              {player.name}
+            </Link>
+            {' — '}
+            <span className="text-gray-600">{player.position}</span>
+          </li>
+        ))}
+      </ul>
 
-      {isHitter && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">{latest.season} Hitting</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="AVG" value={latest.batting_avg} />
-            <Stat label="HR" value={latest.home_runs} />
-            <Stat label="RBI" value={latest.rbi} />
-            <Stat label="OPS" value={latest.ops} />
-            <Stat label="Hits" value={latest.hits} />
-            <Stat label="Walks" value={latest.walks} />
-          </div>
-        </div>
-      )}
+      <div className="flex justify-between items-center">
+        {currentPage > 1 ? (
+          <Link
+            href={`/players?page=${currentPage - 1}`}
+            className="px-4 py-2 border rounded font-semibold hover:bg-gray-50"
+          >
+            &larr; Previous
+          </Link>
+        ) : (
+          <span />
+        )}
 
-      {isPitcher && (
-        <div>
-          <h2 className="text-xl font-semibold mb-3">{latest.season} Pitching</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="ERA" value={latest.era} />
-            <Stat label="Wins" value={latest.wins} />
-            <Stat label="Losses" value={latest.losses} />
-            <Stat label="WHIP" value={latest.whip} />
-            <Stat label="Strikeouts" value={latest.strikeouts_pitched} />
-            <Stat label="Innings" value={latest.innings_pitched} />
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+        <span className="text-sm text-gray-500">
+          Page {currentPage} of {totalPages}
+        </span>
 
-function Stat({ label, value }: { label: string; value: any }) {
-  return (
-    <div className="border rounded p-3 text-center">
-      <div className="text-2xl font-bold">{value ?? '—'}</div>
-      <div className="text-xs text-gray-500 uppercase">{label}</div>
+        {currentPage < totalPages ? (
+          <Link
+            href={`/players?page=${currentPage + 1}`}
+            className="px-4 py-2 border rounded font-semibold hover:bg-gray-50"
+          >
+            Next &rarr;
+          </Link>
+        ) : (
+          <span />
+        )}
+      </div>
     </div>
   )
 }
