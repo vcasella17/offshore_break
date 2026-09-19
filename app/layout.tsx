@@ -1,17 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Offshore Break",
@@ -20,30 +9,52 @@ export const metadata: Metadata = {
 
 function NavBar() {
   return (
-    <nav className="border-b px-8 py-4 flex items-center gap-6">
-      <Link href="/" className="font-bold text-lg mr-4">
-        Offshore Break
-      </Link>
-      <Link href="/players" className="text-gray-600 hover:text-black font-medium">
-        Players
-      </Link>
-      <Link href="/teams" className="text-gray-600 hover:text-black font-medium">
-        Teams
-      </Link>
-      <Link href="/games" className="text-gray-600 hover:text-black font-medium">
-        Games
-      </Link>
-    </nav>
+    <header className="border-b border-[#1A2842]/20 bg-[#F8F3EA]">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+        <Link href="/" className="group">
+          <div className="text-xl font-black tracking-[-0.04em] text-[#1A2842]">
+            OFFSHORE <span className="text-[#D85F46]">BREAK</span>
+          </div>
+          <div className="mt-1 text-[9px] font-bold uppercase tracking-[0.22em] text-[#59B3AD]">
+            Baseball Analytics
+          </div>
+        </Link>
+
+        <div className="flex items-center gap-8 text-sm font-semibold text-[#1A2842]">
+          <Link
+            href="/players"
+            className="transition-colors hover:text-[#D85F46]"
+          >
+            Players
+          </Link>
+
+          <Link
+            href="/teams"
+            className="transition-colors hover:text-[#D85F46]"
+          >
+            Teams
+          </Link>
+
+          <Link
+            href="/games"
+            className="transition-colors hover:text-[#D85F46]"
+          >
+            Games
+          </Link>
+        </div>
+      </nav>
+    </header>
   );
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
+    <html lang="en">
+      <body>
         <NavBar />
         {children}
       </body>
