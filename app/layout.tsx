@@ -52,6 +52,13 @@ function NavBar() {
           >
             Games
           </Link>
+
+          <Link
+            href="/compare"
+            className="transition-colors hover:text-[#D85F46]"
+          >
+            Compare
+          </Link>
         </div>
       </nav>
     </header>
