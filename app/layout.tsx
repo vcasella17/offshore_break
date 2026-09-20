@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,12 +12,22 @@ function NavBar() {
   return (
     <header className="border-b border-[#1A2842]/20 bg-[#F8F3EA]">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-        <Link href="/" className="group">
-          <div className="text-xl font-black tracking-[-0.04em] text-[#1A2842]">
-            OFFSHORE <span className="text-[#D85F46]">BREAK</span>
-          </div>
-          <div className="mt-1 text-[9px] font-bold uppercase tracking-[0.22em] text-[#59B3AD]">
-            Baseball Analytics
+        <Link href="/" className="group flex items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="Offshore Break logo"
+            width={36}
+            height={36}
+            className="object-contain"
+          />
+
+          <div>
+            <div className="text-xl font-black tracking-[-0.04em] text-[#1A2842]">
+              OFFSHORE <span className="text-[#D85F46]">BREAK</span>
+            </div>
+            <div className="mt-1 text-[9px] font-bold uppercase tracking-[0.22em] text-[#59B3AD]">
+              Baseball Analytics
+            </div>
           </div>
         </Link>
 

@@ -12,9 +12,11 @@ export default async function Home() {
       supabase
         .from("PlayerStats")
         .select(
-          "player_id, season, games, hits, home_runs, rbi, batting_avg, obp, slg, ops"
+          "player_id, season, games, hits, home_runs, rbi, batting_avg, obp, slg, ops, at_bats"
         )
         .eq("season", 2026)
+        .not("ops", "is", null)
+        .gte("at_bats", 200)
         .order("ops", { ascending: false })
         .limit(5),
 
@@ -39,9 +41,7 @@ export default async function Home() {
     (teams ?? []).map((team) => [team.id, team])
   );
 
-  const topPerformers = (stats ?? []).filter(
-    (stat) => stat.ops !== null
-  );
+  const topPerformers = stats ?? [];
 
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
@@ -175,6 +175,12 @@ export default async function Home() {
           </div>
 
           <div>
+            {topPerformers.length === 0 && (
+              <p className="py-8 text-sm text-[#687384]">
+                No qualifying performers found yet.
+              </p>
+            )}
+
             {topPerformers.map((stat, index) => {
               const player = playerMap.get(stat.player_id);
 
