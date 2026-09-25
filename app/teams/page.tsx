@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type Team = {
@@ -7,47 +8,533 @@ type Team = {
   abbreviation: string;
 };
 
-type MlbDivision = {
-  id: number;
-  name: string;
-  league?: {
-    id: number;
-    name: string;
-    abbreviation?: string;
-  };
-};
-
 type MlbTeam = {
   id: number;
   name: string;
   abbreviation?: string;
-  teamName?: string;
-  shortName?: string;
-  division?: MlbDivision;
   league?: {
     id: number;
     name: string;
-    abbreviation?: string;
+  };
+  division?: {
+    id: number;
+    name: string;
   };
 };
 
-type TeamRecord = {
+type MlbTeamRecord = {
   team: {
     id: number;
     name: string;
   };
-  wins?: number;
-  losses?: number;
-  divisionRank?: string;
+  wins: number;
+  losses: number;
+  winningPercentage?: string;
 };
+
+type MlbDivision = {
+  division: {
+    id: number;
+    name: string;
+    league: {
+      id: number;
+      name: string;
+    };
+  };
+  teamRecords: MlbTeamRecord[];
+};
+
+type TeamColors = {
+  primary: string;
+  secondary: string;
+  accent: string;
+  hoverText: string;
+};
+
+/* =========================================================
+   MLB TEAM COLORS
+   ========================================================= */
+
+const TEAM_COLORS: Record<string, TeamColors> = {
+  "Arizona Diamondbacks": {
+    primary: "#A71930",
+    secondary: "#E3D4AD",
+    accent: "#000000",
+    hoverText: "#1A2842",
+  },
+
+  "Atlanta Braves": {
+    primary: "#CE1141",
+    secondary: "#13274F",
+    accent: "#EAAA00",
+    hoverText: "#FFFFFF",
+  },
+
+  "Baltimore Orioles": {
+    primary: "#DF4601",
+    secondary: "#000000",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Boston Red Sox": {
+    primary: "#BD3039",
+    secondary: "#0C2340",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Chicago Cubs": {
+    primary: "#0E3386",
+    secondary: "#CC3433",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Chicago White Sox": {
+    primary: "#27251F",
+    secondary: "#C4CED4",
+    accent: "#FFFFFF",
+    hoverText: "#1A2842",
+  },
+
+  "Cincinnati Reds": {
+    primary: "#C6011F",
+    secondary: "#000000",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Cleveland Guardians": {
+    primary: "#00385D",
+    secondary: "#E50022",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Colorado Rockies": {
+    primary: "#333366",
+    secondary: "#C4CED4",
+    accent: "#000000",
+    hoverText: "#1A2842",
+  },
+
+  "Detroit Tigers": {
+    primary: "#0C2340",
+    secondary: "#FA4616",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Houston Astros": {
+    primary: "#002D62",
+    secondary: "#EB6E1F",
+    accent: "#F4911E",
+    hoverText: "#FFFFFF",
+  },
+
+  "Kansas City Royals": {
+    primary: "#004687",
+    secondary: "#BD9B60",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Los Angeles Angels": {
+    primary: "#BA0021",
+    secondary: "#003263",
+    accent: "#862633",
+    hoverText: "#FFFFFF",
+  },
+
+  "Los Angeles Dodgers": {
+    primary: "#005A9C",
+    secondary: "#EF3E42",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Miami Marlins": {
+    primary: "#00A3E0",
+    secondary: "#EF3340",
+    accent: "#000000",
+    hoverText: "#FFFFFF",
+  },
+
+  "Milwaukee Brewers": {
+    primary: "#12284B",
+    secondary: "#FFC52F",
+    accent: "#FFFFFF",
+    hoverText: "#1A2842",
+  },
+
+  "Minnesota Twins": {
+    primary: "#002B5C",
+    secondary: "#D31145",
+    accent: "#B9975B",
+    hoverText: "#FFFFFF",
+  },
+
+  "New York Mets": {
+    primary: "#002D72",
+    secondary: "#FF5910",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "New York Yankees": {
+    primary: "#003087",
+    secondary: "#E4002B",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  Athletics: {
+    primary: "#003831",
+    secondary: "#EFB21E",
+    accent: "#FFFFFF",
+    hoverText: "#1A2842",
+  },
+
+  "Philadelphia Phillies": {
+    primary: "#E81828",
+    secondary: "#002D72",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Pittsburgh Pirates": {
+    primary: "#27251F",
+    secondary: "#FDB827",
+    accent: "#FFFFFF",
+    hoverText: "#1A2842",
+  },
+
+  "San Diego Padres": {
+    primary: "#2F241D",
+    secondary: "#FFC425",
+    accent: "#FFFFFF",
+    hoverText: "#1A2842",
+  },
+
+  "San Francisco Giants": {
+    primary: "#FD5A1E",
+    secondary: "#27251F",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Seattle Mariners": {
+    primary: "#0C2C56",
+    secondary: "#005C5C",
+    accent: "#C4CED4",
+    hoverText: "#FFFFFF",
+  },
+
+  "St. Louis Cardinals": {
+    primary: "#C41E3A",
+    secondary: "#0C2340",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Tampa Bay Rays": {
+    primary: "#092C5C",
+    secondary: "#8FBCE6",
+    accent: "#F5D130",
+    hoverText: "#1A2842",
+  },
+
+  "Texas Rangers": {
+    primary: "#003278",
+    secondary: "#C0111F",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+
+  "Toronto Blue Jays": {
+    primary: "#134A8E",
+    secondary: "#1D2D5C",
+    accent: "#E8291C",
+    hoverText: "#FFFFFF",
+  },
+
+  "Washington Nationals": {
+    primary: "#AB0003",
+    secondary: "#14225A",
+    accent: "#FFFFFF",
+    hoverText: "#FFFFFF",
+  },
+};
+
+function getTeamColors(teamName: string): TeamColors {
+  return (
+    TEAM_COLORS[teamName] ?? {
+      primary: "#1A2842",
+      secondary: "#D85F46",
+      accent: "#FFFFFF",
+      hoverText: "#FFFFFF",
+    }
+  );
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
 
 function teamLogo(teamId: number | string) {
   return `https://www.mlbstatic.com/team-logos/${teamId}.svg`;
 }
 
-async function getMlbTeams(): Promise<MlbTeam[]> {
-  const response = await fetch(
-    "https://statsapi.mlb.com/api/v1/teams?sportId=1&hydrate=division,league",
+function getRecord(
+  teamId: number | string,
+  records: Map<number, MlbTeamRecord>
+) {
+  const record = records.get(Number(teamId));
+
+  if (!record) {
+    return "—";
+  }
+
+  return `${record.wins}-${record.losses}`;
+}
+
+/* =========================================================
+   TEAM CARD
+   ========================================================= */
+
+function TeamCard({
+  team,
+  record,
+}: {
+  team: MlbTeam;
+  record: string;
+}) {
+  const colors = getTeamColors(team.name);
+
+  const teamStyle = {
+    "--team-secondary": colors.secondary,
+    "--team-hover-text": colors.hoverText,
+  } as CSSProperties;
+
+  return (
+    <Link
+      href={`/teams/${team.id}`}
+      style={teamStyle}
+      className="
+        group
+        relative
+        flex
+        min-h-[160px]
+        items-center
+        justify-between
+        overflow-hidden
+        border
+        border-[#1A2842]/15
+        bg-[#F8F3EA]
+        px-8
+        py-7
+        text-[#1A2842]
+        transition-all
+        duration-200
+        hover:bg-[var(--team-secondary)]
+        hover:text-[var(--team-hover-text)]
+      "
+    >
+      {/* Team information */}
+      <div className="flex min-w-0 items-center gap-7">
+        {/* Logo */}
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center">
+          <img
+            src={teamLogo(team.id)}
+            alt=""
+            className="
+              h-[72px]
+              w-[72px]
+              object-contain
+              transition-transform
+              duration-200
+              group-hover:scale-105
+            "
+          />
+        </div>
+
+        {/* Name + record */}
+        <div className="min-w-0">
+          <h3
+            className="
+              text-[18px]
+              font-black
+              leading-tight
+              tracking-[-0.035em]
+              transition-colors
+              duration-200
+              group-hover:text-[var(--team-hover-text)]
+            "
+          >
+            {team.name}
+          </h3>
+
+          <div className="mt-3 flex items-center gap-3">
+            <span
+              className="
+                font-mono
+                text-[9px]
+                font-black
+                uppercase
+                tracking-[0.16em]
+                text-[#1A2842]/50
+                transition-colors
+                duration-200
+                group-hover:text-[var(--team-hover-text)]
+                group-hover:opacity-70
+              "
+            >
+              {team.abbreviation ?? ""}
+            </span>
+
+            <span
+              className="
+                h-1
+                w-1
+                rounded-full
+                bg-[#D85F46]
+                transition-colors
+                duration-200
+                group-hover:bg-[var(--team-hover-text)]
+              "
+            />
+
+            <span
+              className="
+                font-mono
+                text-[9px]
+                font-medium
+                text-[#1A2842]/45
+                transition-colors
+                duration-200
+                group-hover:text-[var(--team-hover-text)]
+                group-hover:opacity-70
+              "
+            >
+              {record}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Arrow */}
+      <span
+        className="
+          ml-4
+          shrink-0
+          text-xl
+          text-[#1A2842]/25
+          transition-all
+          duration-200
+          group-hover:translate-x-1
+          group-hover:text-[var(--team-hover-text)]
+        "
+      >
+        →
+      </span>
+
+      {/* Subtle team-color accent */}
+      <div
+        className="
+          absolute
+          bottom-0
+          left-0
+          h-[3px]
+          w-0
+          bg-[var(--team-secondary)]
+          transition-all
+          duration-200
+          group-hover:w-full
+        "
+      />
+    </Link>
+  );
+}
+
+/* =========================================================
+   DIVISION
+   ========================================================= */
+
+function DivisionSection({
+  leagueName,
+  divisionName,
+  teams,
+  records,
+}: {
+  leagueName: string;
+  divisionName: string;
+  teams: MlbTeam[];
+  records: Map<number, MlbTeamRecord>;
+}) {
+  return (
+    <section>
+      {/* Division heading */}
+      <div className="mb-7 flex items-end gap-5">
+        <div className="h-3 w-3 shrink-0 bg-[#D85F46]" />
+
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#1A2842]">
+            {leagueName}
+          </p>
+
+          <p className="mt-2 text-[9px] font-black uppercase tracking-[0.18em] text-[#1A2842]/50">
+            {divisionName}
+          </p>
+        </div>
+
+        <div className="mb-1 h-px flex-1 bg-[#1A2842]/15" />
+      </div>
+
+      {/* Team grid */}
+      <div className="grid gap-px bg-[#1A2842]/15 md:grid-cols-2 xl:grid-cols-3">
+        {teams.map((team) => (
+          <TeamCard
+            key={team.id}
+            team={team}
+            record={getRecord(team.id, records)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+export default async function TeamsPage() {
+  const currentSeason = new Date().getFullYear();
+
+  /* -------------------------------------------------------
+     MLB TEAMS
+     ------------------------------------------------------- */
+
+  const teamsResponse = await fetch(
+    "https://statsapi.mlb.com/api/v1/teams?sportId=1&hydrate=league,division",
+    {
+      next: {
+        revalidate: 3600,
+      },
+    }
+  );
+
+  const teamsJson = await teamsResponse.json();
+
+  const mlbTeams: MlbTeam[] = teamsJson.teams ?? [];
+
+  /* -------------------------------------------------------
+     MLB STANDINGS
+     ------------------------------------------------------- */
+
+  const standingsResponse = await fetch(
+    `https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season=${currentSeason}&standingsTypes=regularSeason`,
     {
       next: {
         revalidate: 300,
@@ -55,301 +542,129 @@ async function getMlbTeams(): Promise<MlbTeam[]> {
     }
   );
 
-  if (!response.ok) {
-    throw new Error("Failed to load MLB teams.");
+  const standingsJson = await standingsResponse.json();
+
+  const records = new Map<number, MlbTeamRecord>();
+
+  const divisions: MlbDivision[] = standingsJson.records ?? [];
+
+  for (const division of divisions) {
+    for (const teamRecord of division.teamRecords ?? []) {
+      records.set(Number(teamRecord.team.id), teamRecord);
+    }
   }
 
-  const data = await response.json();
+  /* -------------------------------------------------------
+     GROUP TEAMS BY LEAGUE / DIVISION
+     ------------------------------------------------------- */
 
-  return data.teams ?? [];
-}
+  const grouped = new Map<string, MlbTeam[]>();
 
-async function getTeamRecords() {
-  const season = new Date().getFullYear();
-
-  try {
-    const response = await fetch(
-      `https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season=${season}&standingsTypes=regularSeason`,
-      {
-        next: {
-          revalidate: 300,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return new Map<number, TeamRecord>();
+  for (const team of mlbTeams) {
+    if (!team.division?.name || !team.league?.name) {
+      continue;
     }
 
-    const data = await response.json();
-
-    const records = new Map<number, TeamRecord>();
-
-    for (const record of data.records ?? []) {
-      for (const teamRecord of record.teamRecords ?? []) {
-        records.set(teamRecord.team.id, teamRecord);
-      }
-    }
-
-    return records;
-  } catch {
-    return new Map<number, TeamRecord>();
-  }
-}
-
-function ordinal(value: string | undefined) {
-  if (!value) return "";
-
-  if (value === "1") return "1st";
-  if (value === "2") return "2nd";
-  if (value === "3") return "3rd";
-
-  return `${value}th`;
-}
-
-export default async function TeamsPage() {
-  const [{ data: databaseTeams }, mlbTeams, records] =
-    await Promise.all([
-      supabase
-        .from("Teams")
-        .select("id, name, abbreviation")
-        .order("name"),
-
-      getMlbTeams(),
-
-      getTeamRecords(),
-    ]);
-
-  const dbTeams = (databaseTeams ?? []) as Team[];
-
-  /*
-   * Map the database teams by MLB team ID.
-   *
-   * Your Teams.id is the same MLB team ID used throughout
-   * the rest of Offshore Break.
-   */
-  const databaseTeamMap = new Map(
-    dbTeams.map((team) => [String(team.id), team])
-  );
-
-  /*
-   * Only use actual MLB clubs.
-   */
-  const teams = mlbTeams.filter((team) => team.division);
-
-  /*
-   * Group dynamically by league + division.
-   *
-   * Nothing here is hardcoded for the 30 teams.
-   */
-  const grouped = new Map<
-    string,
-    {
-      leagueName: string;
-      divisionName: string;
-      teams: MlbTeam[];
-    }
-  >();
-
-  for (const team of teams) {
-    const leagueName =
-      team.division?.league?.name ??
-      team.league?.name ??
-      "Major League Baseball";
-
-    const divisionName =
-      team.division?.name ?? "Division";
-
-    const key = `${leagueName}-${divisionName}`;
+    const key = `${team.league.name}|||${team.division.name}`;
 
     if (!grouped.has(key)) {
-      grouped.set(key, {
-        leagueName,
-        divisionName,
-        teams: [],
-      });
+      grouped.set(key, []);
     }
 
-    grouped.get(key)!.teams.push(team);
+    grouped.get(key)!.push(team);
   }
 
-  /*
-   * Sort:
-   * American League first
-   * National League second
-   *
-   * Then divisions alphabetically.
-   */
-  const leagueOrder = new Map([
-    ["American League", 1],
-    ["National League", 2],
-  ]);
+  const americanLeague = Array.from(grouped.entries())
+    .filter(([key]) => key.startsWith("American League|||"))
+    .sort(([a], [b]) => a.localeCompare(b));
 
-  const divisionGroups = Array.from(grouped.values()).sort((a, b) => {
-    const leagueA = leagueOrder.get(a.leagueName) ?? 99;
-    const leagueB = leagueOrder.get(b.leagueName) ?? 99;
+  const nationalLeague = Array.from(grouped.entries())
+    .filter(([key]) => key.startsWith("National League|||"))
+    .sort(([a], [b]) => a.localeCompare(b));
 
-    if (leagueA !== leagueB) {
-      return leagueA - leagueB;
-    }
-
-    return a.divisionName.localeCompare(b.divisionName);
-  });
+  /* -------------------------------------------------------
+     PAGE
+     ------------------------------------------------------- */
 
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
-      {/* ====================================================== */}
-      {/* HEADER */}
-      {/* ====================================================== */}
+      {/* ===================================================
+          HERO
+          =================================================== */}
 
       <section className="border-b border-[#1A2842]/15">
-        <div className="mx-auto max-w-[1440px] px-6 py-16 md:px-10 md:py-20">
-          <div className="flex items-end justify-between gap-8">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D85F46]">
-                Around the League
-              </p>
+        <div className="mx-auto flex max-w-[1440px] items-end justify-between px-6 py-12 md:px-10 md:py-14 lg:px-11">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#D85F46]">
+              The League
+            </p>
 
-              <h1 className="mt-3 text-5xl font-black tracking-[-0.055em] md:text-7xl">
-                Teams
-              </h1>
+            <h1 className="mt-3 text-6xl font-black leading-none tracking-[-0.06em] md:text-7xl">
+              Teams
+            </h1>
 
-              <p className="mt-4 max-w-xl text-base leading-7 text-[#1A2842]/55">
-                All 30 Major League clubs, rosters, players, and
-                performance.
-              </p>
-            </div>
+            <p className="mt-5 max-w-xl text-sm leading-6 text-[#1A2842]/55 md:text-base">
+              All 30 Major League clubs, rosters, players, and performance.
+            </p>
+          </div>
 
-            <div className="hidden text-right md:block">
-              <p className="font-mono text-5xl font-black tracking-[-0.05em]">
-                {teams.length}
-              </p>
+          <div className="hidden text-right md:block">
+            <p className="font-mono text-5xl font-black leading-none tracking-[-0.06em]">
+              {mlbTeams.length}
+            </p>
 
-              <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-[#687384]">
-                Teams
-              </p>
-            </div>
+            <p className="mt-2 text-[9px] font-black uppercase tracking-[0.2em] text-[#1A2842]/50">
+              Teams
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ====================================================== */}
-      {/* TEAM DIRECTORY */}
-      {/* ====================================================== */}
+      {/* ===================================================
+          TEAM DIRECTORY
+          =================================================== */}
 
-      <div className="mx-auto max-w-[1440px] px-6 py-14 md:px-10 md:py-20">
-        {divisionGroups.map((division) => (
-          <section
-            key={`${division.leagueName}-${division.divisionName}`}
-            className="mb-16 last:mb-0"
-          >
-            {/* DIVISION HEADER */}
+      <section className="mx-auto max-w-[1440px] px-6 py-16 md:px-10 md:py-20 lg:px-11">
+        <div className="space-y-20">
+          {/* AMERICAN LEAGUE */}
 
-            <div className="mb-5 flex items-center gap-4">
-              <span className="h-2 w-2 shrink-0 bg-[#D85F46]" />
+          <div>
+            {americanLeague.map(([key, teams]) => {
+              const [, divisionName] = key.split("|||");
 
-              <div className="shrink-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em]">
-                  {division.leagueName}
-                </p>
+              return (
+                <div key={key} className="mb-16 last:mb-0">
+                  <DivisionSection
+                    leagueName="American League"
+                    divisionName={divisionName}
+                    teams={teams}
+                    records={records}
+                  />
+                </div>
+              );
+            })}
+          </div>
 
-                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-[#687384]">
-                  {division.divisionName}
-                </p>
-              </div>
+          {/* NATIONAL LEAGUE */}
 
-              <div className="h-px flex-1 bg-[#1A2842]/15" />
-            </div>
+          <div>
+            {nationalLeague.map(([key, teams]) => {
+              const [, divisionName] = key.split("|||");
 
-            {/* TEAM GRID */}
-
-            <div className="grid overflow-hidden border border-[#1A2842]/20 md:grid-cols-2 lg:grid-cols-3">
-              {division.teams
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((mlbTeam) => {
-                  const databaseTeam = databaseTeamMap.get(
-                    String(mlbTeam.id)
-                  );
-
-                  /*
-                   * MLB ID is the fallback because it is also the
-                   * ID used by the MLB API and logo service.
-                   */
-                  const teamId =
-                    databaseTeam?.id ?? String(mlbTeam.id);
-
-                  const record = records.get(mlbTeam.id);
-
-                  return (
-                    <Link
-                      key={mlbTeam.id}
-                      href={`/teams/${teamId}`}
-                      className="group flex min-h-[128px] items-center gap-5 border-b border-r border-[#1A2842]/15 px-7 py-6 transition-colors duration-200 hover:bg-[#1A2842] hover:text-white"
-                    >
-                      {/* LOGO */}
-
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center">
-                        <img
-                          src={teamLogo(mlbTeam.id)}
-                          alt={`${mlbTeam.name} logo`}
-                          className="h-14 w-14 object-contain transition-transform duration-200 group-hover:scale-110"
-                        />
-                      </div>
-
-                      {/* TEAM INFORMATION */}
-
-                      <div className="min-w-0">
-                        <h2 className="truncate text-[17px] font-black tracking-[-0.025em]">
-                          {mlbTeam.name}
-                        </h2>
-
-                        <div className="mt-2 flex items-center gap-3">
-                          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#687384] group-hover:text-white/45">
-                            {mlbTeam.abbreviation ??
-                              databaseTeam?.abbreviation ??
-                              ""}
-                          </span>
-
-                          {record && (
-                            <>
-                              <span className="h-1 w-1 rounded-full bg-[#D85F46]" />
-
-                              <span className="font-mono text-[10px] text-[#687384] group-hover:text-white/45">
-                                {record.wins}-{record.losses}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* ARROW */}
-
-                      <div className="ml-auto shrink-0 text-lg text-[#1A2842]/20 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#D85F46]">
-                        →
-                      </div>
-                    </Link>
-                  );
-                })}
-            </div>
-          </section>
-        ))}
-      </div>
-
-      {/* ====================================================== */}
-      {/* FOOTER */}
-      {/* ====================================================== */}
-
-      <footer className="border-t border-[#1A2842]/15">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-8 md:px-10">
-          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-[#687384]">
-            Offshore Break
-          </p>
-
-          <p className="font-mono text-[8px] text-[#687384]">
-            {teams.length} MLB CLUBS
-          </p>
+              return (
+                <div key={key} className="mb-16 last:mb-0">
+                  <DivisionSection
+                    leagueName="National League"
+                    divisionName={divisionName}
+                    teams={teams}
+                    records={records}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </footer>
+      </section>
     </main>
   );
 }

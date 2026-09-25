@@ -1,13 +1,27 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
 @import "tailwindcss";
 
 :root {
-  --background: #F8F3EA;
-  --foreground: #1A2842;
-  --navy: #1A2842;
-  --coral: #D85F46;
-  --teal: #59B3AD;
-  --muted: #687384;
-  --border: #D8D1C6;
+  --background: #f8f3ea;
+  --foreground: #1a2842;
+
+  --navy: #1a2842;
+  --navy-deep: #101a2c;
+  --navy-dark: #0b1423;
+
+  --cream: #f8f3ea;
+  --cream-light: #fcf9f3;
+  --white: #ffffff;
+
+  --coral: #d85f46;
+  --teal: #59b3ad;
+
+  --muted: #77736c;
+  --muted-light: #a29d94;
+
+  --border: rgba(26, 40, 66, 0.14);
+  --border-light: rgba(26, 40, 66, 0.08);
 }
 
 * {
@@ -15,14 +29,16 @@
 }
 
 html {
-  background: var(--background);
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-feature-settings: "kern", "liga";
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -30,286 +46,307 @@ a {
   text-decoration: none;
 }
 
-button {
-  font-family: inherit;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-::selection {
-  background: var(--teal);
-  color: var(--navy);
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+
+.font-mono,
+code,
+pre {
+  font-family: "IBM Plex Mono", monospace;
 }
 
-:root {
-  --offshore-paper: #f8f3ea;
-  --offshore-navy: #1a2842;
-  --offshore-coral: #d85f46;
-  --offshore-teal: #59b3ad;
-  --offshore-muted: #687384;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "IBM Plex Sans", sans-serif;
+  letter-spacing: -0.025em;
 }
 
-/* -------------------------------------------------- */
-/* OFFSHORE BREAK DESIGN SYSTEM */
-/* -------------------------------------------------- */
+/* =========================================================
+   GLOBAL LAYOUT
+   ========================================================= */
 
-::selection {
-  background: var(--offshore-coral);
-  color: white;
+.site-shell {
+  min-height: 100vh;
+  background: var(--cream);
 }
 
-html {
-  scroll-behavior: smooth;
+.content-width {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding-left: 32px;
+  padding-right: 32px;
 }
 
-body {
-  margin: 0;
-  background: var(--offshore-paper);
-  color: var(--offshore-navy);
+@media (max-width: 768px) {
+  .content-width {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
 }
 
-/* Thin baseball-card style scrollbar */
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #eee7dc;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #b9b2a7;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--offshore-navy);
-}
-
-/* -------------------------------------------------- */
-/* ANALYTICS TEXT */
-/* -------------------------------------------------- */
-
-.analytics-label {
-  font-size: 9px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-}
-
-.analytics-number {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
-  font-variant-numeric: tabular-nums;
-}
-
-/* -------------------------------------------------- */
-/* PAPER GRID */
-/* -------------------------------------------------- */
+/* =========================================================
+   PAPER / BASEBALL DATA TEXTURE
+   ========================================================= */
 
 .paper-grid {
   background-image:
     linear-gradient(
+      to right,
       rgba(26, 40, 66, 0.035) 1px,
       transparent 1px
     ),
     linear-gradient(
-      90deg,
-      rgba(26, 40, 66, 0.035) 1px,
+      to bottom,
+      rgba(26, 40, 66, 0.025) 1px,
       transparent 1px
     );
   background-size: 32px 32px;
 }
 
-/* -------------------------------------------------- */
-/* DATA CARD */
-/* -------------------------------------------------- */
+/* =========================================================
+   SECTION HEADERS
+   ========================================================= */
 
-.data-card {
-  border: 1px solid rgba(26, 40, 66, 0.14);
-  background: rgba(255, 255, 255, 0.28);
-  transition:
-    border-color 180ms ease,
-    transform 180ms ease,
-    background 180ms ease;
+.section-eyebrow {
+  color: var(--teal);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
-.data-card:hover {
-  border-color: rgba(26, 40, 66, 0.3);
-  background: rgba(255, 255, 255, 0.5);
+.section-title {
+  margin-top: 6px;
+  color: var(--navy);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
 }
 
-/* -------------------------------------------------- */
-/* ANALYTICS GRID */
-/* -------------------------------------------------- */
-
-.analytics-grid {
-  background-image:
-    linear-gradient(
-      rgba(26, 40, 66, 0.07) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(26, 40, 66, 0.07) 1px,
-      transparent 1px
-    );
-  background-size: 24px 24px;
+.section-rule {
+  height: 1px;
+  width: 100%;
+  margin-top: 14px;
+  background: var(--border);
 }
 
-/* -------------------------------------------------- */
-/* DIAGONAL BASEBALL DETAIL */
-/* -------------------------------------------------- */
+/* =========================================================
+   DATA LABELS
+   ========================================================= */
 
-.diagonal-cut {
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    100% 82%,
-    96% 100%,
-    0 100%
-  );
+.data-label {
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-/* -------------------------------------------------- */
-/* STAT BAR */
-/* -------------------------------------------------- */
-
-.stat-bar {
-  position: relative;
-  height: 8px;
-  overflow: hidden;
-  background: rgba(26, 40, 66, 0.09);
-}
-
-.stat-bar-fill {
-  height: 100%;
-  background: var(--offshore-coral);
-  transition: width 500ms ease;
-}
-
-/* -------------------------------------------------- */
-/* TABLE DETAILS */
-/* -------------------------------------------------- */
-
-.analytics-table {
+.data-number {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 600;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
 
-.analytics-table th {
-  font-size: 9px;
-  font-weight: 900;
+/* =========================================================
+   DATA TABLES
+   ========================================================= */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  line-height: 1;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.data-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--navy);
+  font-size: 12px;
+}
+
+.data-table td.stat {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table tbody tr {
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(26, 40, 66, 0.035);
+}
+
+/* =========================================================
+   GLOBAL PANELS
+   ========================================================= */
+
+.ob-panel {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.ob-panel-solid {
+  border: 1px solid var(--border);
+  background: var(--white);
+}
+
+.ob-panel-dark {
+  background: var(--navy-deep);
+  color: white;
+}
+
+/* =========================================================
+   STAT BLOCKS
+   ========================================================= */
+
+.stat-block {
+  min-width: 0;
+  padding: 18px;
+  border-right: 1px solid var(--border);
+}
+
+.stat-block:last-child {
+  border-right: 0;
+}
+
+.stat-block-label {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
-.analytics-table td {
-  font-size: 12px;
-}
-
-.analytics-table tbody tr {
-  transition: background 120ms ease;
-}
-
-.analytics-table tbody tr:hover {
-  background: rgba(216, 95, 70, 0.045);
-}
-
-/* -------------------------------------------------- */
-/* BASEBALL STITCHING DETAIL */
-/* -------------------------------------------------- */
-
-.baseball-stitch {
-  position: relative;
-}
-
-.baseball-stitch::after {
-  content: "";
-  position: absolute;
-  right: 18px;
-  top: 0;
-  width: 1px;
-  height: 100%;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--offshore-coral) 0,
-    var(--offshore-coral) 5px,
-    transparent 5px,
-    transparent 10px
-  );
-  opacity: 0.35;
-}
-
-/* -------------------------------------------------- */
-/* FADE / ENTRANCE */
-/* -------------------------------------------------- */
-
-@keyframes offshore-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.offshore-fade-up {
-  animation: offshore-fade-up 450ms ease both;
-}
-/* =========================================================
-   OFFSHORE BREAK ANALYTICS SYSTEM
-   ========================================================= */
-
-::selection {
-  background: #d85f46;
-  color: white;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  background: #f8f3ea;
-  color: #1a2842;
-}
-
-/* Paper / scouting-report grid */
-
-.paper-grid {
-  background-image:
-    linear-gradient(
-      rgba(26, 40, 66, 0.035) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(26, 40, 66, 0.035) 1px,
-      transparent 1px
-    );
-  background-size: 32px 32px;
-}
-
-/* Analytics number styling */
-
-.analytics-number {
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    "Liberation Mono",
-    "Courier New",
-    monospace;
-
+.stat-block-value {
+  color: var(--navy);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
 }
 
-/* Better scrollbar */
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+.ob-link {
+  transition:
+    color 140ms ease,
+    opacity 140ms ease;
+}
+
+.ob-link:hover {
+  color: var(--coral);
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.ob-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.ob-button:hover {
+  border-color: var(--coral);
+  background: var(--coral);
+}
+
+.ob-button-secondary {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--navy);
+}
+
+.ob-button-secondary:hover {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: white;
+}
+
+/* =========================================================
+   ACCENTS
+   ========================================================= */
+
+.accent-coral {
+  color: var(--coral);
+}
+
+.accent-teal {
+  color: var(--teal);
+}
+
+.bg-coral {
+  background: var(--coral);
+}
+
+.bg-teal {
+  background: var(--teal);
+}
+
+.bg-navy {
+  background: var(--navy);
+}
+
+.bg-navy-deep {
+  background: var(--navy-deep);
+}
+
+/* =========================================================
+   SCROLLBARS
+   ========================================================= */
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -317,13 +354,71 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #eee7dc;
+  background: var(--cream);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #aaa69d;
+  background: rgba(26, 40, 66, 0.25);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1a2842;
+  background: var(--navy);
+}
+
+/* =========================================================
+   SELECTION
+   ========================================================= */
+
+::selection {
+  background: var(--coral);
+  color: white;
+}
+
+/* =========================================================
+   MOBILE TABLES
+   ========================================================= */
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+/* =========================================================
+   FOCUS
+   ========================================================= */
+
+:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 21px;
+  }
+
+  .stat-block {
+    padding: 14px;
+  }
+
+  .stat-block-value {
+    font-size: 21px;
+  }
+
+  .data-table th {
+    padding: 9px 10px;
+  }
+
+  .data-table td {
+    padding: 11px 10px;
+  }
 }
