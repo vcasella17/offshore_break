@@ -31,6 +31,7 @@ type PlayerStat = {
   obp: number | null;
   slg: number | null;
   ops: number | null;
+
   innings_pitched: number | null;
   wins: number | null;
   losses: number | null;
@@ -56,6 +57,10 @@ type Category = {
   direction: "high" | "low";
 };
 
+/* ================================================================
+   TEAM COLORS
+================================================================ */
+
 const TEAM_COLORS: Record<
   string,
   { primary: string; secondary: string }
@@ -64,123 +69,161 @@ const TEAM_COLORS: Record<
     primary: "#A71930",
     secondary: "#2A9D8F",
   },
+
   "Atlanta Braves": {
     primary: "#CE1141",
     secondary: "#13274F",
   },
+
   "Baltimore Orioles": {
     primary: "#DF4601",
     secondary: "#000000",
   },
+
   "Boston Red Sox": {
     primary: "#BD3039",
     secondary: "#0C2340",
   },
+
   "Chicago Cubs": {
     primary: "#0E3386",
     secondary: "#CC3433",
   },
+
   "Chicago White Sox": {
     primary: "#27251F",
     secondary: "#C4CED4",
   },
+
   "Cincinnati Reds": {
     primary: "#C6011F",
     secondary: "#000000",
   },
+
   "Cleveland Guardians": {
     primary: "#00385D",
     secondary: "#E50022",
   },
+
   "Colorado Rockies": {
     primary: "#333366",
     secondary: "#7663A8",
   },
+
   "Detroit Tigers": {
     primary: "#0C2340",
     secondary: "#FA4616",
   },
+
   "Houston Astros": {
     primary: "#002D62",
     secondary: "#EB6E1F",
   },
+
   "Kansas City Royals": {
     primary: "#004687",
     secondary: "#BD9B60",
   },
+
   "Los Angeles Angels": {
     primary: "#BA0021",
     secondary: "#003263",
   },
+
   "Los Angeles Dodgers": {
     primary: "#005A9C",
     secondary: "#D6E7F5",
   },
+
   "Miami Marlins": {
     primary: "#00A3E0",
     secondary: "#7CC7E8",
   },
+
   "Milwaukee Brewers": {
     primary: "#12284B",
     secondary: "#FFC52F",
   },
+
   "Minnesota Twins": {
     primary: "#002B5C",
     secondary: "#D31145",
   },
+
   "New York Mets": {
     primary: "#002D72",
     secondary: "#FF5910",
   },
+
   "New York Yankees": {
     primary: "#003087",
     secondary: "#C4CED4",
   },
+
   "Oakland Athletics": {
     primary: "#003831",
     secondary: "#EFB21E",
   },
+
+  Athletics: {
+    primary: "#003831",
+    secondary: "#EFB21E",
+  },
+
   "Philadelphia Phillies": {
     primary: "#E81828",
     secondary: "#006BB6",
   },
+
   "Pittsburgh Pirates": {
     primary: "#27251F",
     secondary: "#FDB827",
   },
+
   "San Diego Padres": {
     primary: "#2F241D",
     secondary: "#FFC425",
   },
+
   "San Francisco Giants": {
     primary: "#FD5A1E",
     secondary: "#000000",
   },
+
   "Seattle Mariners": {
     primary: "#0C2C56",
     secondary: "#59B3AD",
   },
+
   "St. Louis Cardinals": {
     primary: "#C41E3A",
     secondary: "#0A2240",
   },
+
   "Tampa Bay Rays": {
     primary: "#092C5C",
     secondary: "#8FBCE6",
   },
+
   "Texas Rangers": {
     primary: "#003278",
     secondary: "#C9DDF2",
   },
+
   "Toronto Blue Jays": {
     primary: "#134A8E",
     secondary: "#13294B",
   },
+
   "Washington Nationals": {
     primary: "#AB0003",
     secondary: "#11225B",
   },
 };
+
+/* ================================================================
+   HITTING CATEGORIES
+================================================================ */
 
 const hittingCategories: Category[] = [
   {
@@ -191,6 +234,7 @@ const hittingCategories: Category[] = [
     format: "average",
     direction: "high",
   },
+
   {
     key: "batting_avg",
     label: "Batting Average",
@@ -199,6 +243,7 @@ const hittingCategories: Category[] = [
     format: "average",
     direction: "high",
   },
+
   {
     key: "obp",
     label: "On-Base Percentage",
@@ -207,6 +252,7 @@ const hittingCategories: Category[] = [
     format: "average",
     direction: "high",
   },
+
   {
     key: "slg",
     label: "Slugging Percentage",
@@ -215,6 +261,7 @@ const hittingCategories: Category[] = [
     format: "average",
     direction: "high",
   },
+
   {
     key: "home_runs",
     label: "Home Runs",
@@ -223,6 +270,7 @@ const hittingCategories: Category[] = [
     format: "number",
     direction: "high",
   },
+
   {
     key: "rbi",
     label: "Runs Batted In",
@@ -231,6 +279,7 @@ const hittingCategories: Category[] = [
     format: "number",
     direction: "high",
   },
+
   {
     key: "hits",
     label: "Hits",
@@ -239,6 +288,7 @@ const hittingCategories: Category[] = [
     format: "number",
     direction: "high",
   },
+
   {
     key: "walks",
     label: "Walks",
@@ -247,6 +297,7 @@ const hittingCategories: Category[] = [
     format: "number",
     direction: "high",
   },
+
   {
     key: "strikeouts",
     label: "Strikeouts",
@@ -257,6 +308,10 @@ const hittingCategories: Category[] = [
   },
 ];
 
+/* ================================================================
+   PITCHING CATEGORIES
+================================================================ */
+
 const pitchingCategories: Category[] = [
   {
     key: "era",
@@ -266,6 +321,7 @@ const pitchingCategories: Category[] = [
     format: "decimal",
     direction: "low",
   },
+
   {
     key: "whip",
     label: "Walks + Hits / Inning",
@@ -274,6 +330,7 @@ const pitchingCategories: Category[] = [
     format: "decimal",
     direction: "low",
   },
+
   {
     key: "strikeouts_pitched",
     label: "Strikeouts",
@@ -282,6 +339,7 @@ const pitchingCategories: Category[] = [
     format: "number",
     direction: "high",
   },
+
   {
     key: "innings_pitched",
     label: "Innings Pitched",
@@ -290,6 +348,7 @@ const pitchingCategories: Category[] = [
     format: "innings",
     direction: "high",
   },
+
   {
     key: "wins",
     label: "Wins",
@@ -298,6 +357,7 @@ const pitchingCategories: Category[] = [
     format: "number",
     direction: "high",
   },
+
   {
     key: "losses",
     label: "Losses",
@@ -306,6 +366,7 @@ const pitchingCategories: Category[] = [
     format: "number",
     direction: "high",
   },
+
   {
     key: "earned_runs",
     label: "Earned Runs",
@@ -316,23 +377,31 @@ const pitchingCategories: Category[] = [
   },
 ];
 
+/* ================================================================
+   FORMATTING
+================================================================ */
+
 function formatAverage(value: number | null | undefined) {
   if (value === null || value === undefined) return "-";
+
   return value.toFixed(3).replace(/^0/, "");
 }
 
 function formatDecimal(value: number | null | undefined) {
   if (value === null || value === undefined) return "-";
+
   return value.toFixed(2);
 }
 
 function formatNumber(value: number | null | undefined) {
   if (value === null || value === undefined) return "-";
+
   return value.toLocaleString();
 }
 
 function formatInnings(value: number | null | undefined) {
   if (value === null || value === undefined) return "-";
+
   return value.toFixed(1);
 }
 
@@ -340,11 +409,25 @@ function formatStat(
   value: number | null | undefined,
   format: Category["format"]
 ) {
-  if (format === "average") return formatAverage(value);
-  if (format === "decimal") return formatDecimal(value);
-  if (format === "innings") return formatInnings(value);
+  if (format === "average") {
+    return formatAverage(value);
+  }
+
+  if (format === "decimal") {
+    return formatDecimal(value);
+  }
+
+  if (format === "innings") {
+    return formatInnings(value);
+  }
+
   return formatNumber(value);
 }
+
+/* ================================================================
+   STANDARD TEAM LOGO
+   Used in the featured leader cards.
+================================================================ */
 
 function TeamLogo({ teamId }: { teamId?: string }) {
   if (!teamId) {
@@ -364,6 +447,60 @@ function TeamLogo({ teamId }: { teamId?: string }) {
   );
 }
 
+/* ================================================================
+   LEADERBOARD TEAM LOGO
+   Two team colors + white logo.
+================================================================ */
+
+function LeaderboardTeamLogo({
+  teamId,
+  teamName,
+}: {
+  teamId?: string;
+  teamName?: string;
+}) {
+  const colors =
+    TEAM_COLORS[teamName ?? ""] ?? {
+      primary: "#1A2842",
+      secondary: "#D85F46",
+    };
+
+  return (
+    <div
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden"
+      style={{
+        background: `linear-gradient(
+          135deg,
+          ${colors.primary} 0%,
+          ${colors.primary} 58%,
+          ${colors.secondary} 58%,
+          ${colors.secondary} 100%
+        )`,
+      }}
+    >
+      {teamId ? (
+        <img
+          src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
+          alt=""
+          className="h-7 w-7 object-contain"
+          style={{
+            filter:
+              "brightness(0) saturate(100%) invert(100%)",
+          }}
+        />
+      ) : (
+        <span className="font-mono text-[7px] font-bold text-white">
+          FA
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
+   PLAYER HEADSHOT
+================================================================ */
+
 function PlayerHeadshot({ playerId }: { playerId: number }) {
   return (
     <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#E8E1D5]">
@@ -376,30 +513,52 @@ function PlayerHeadshot({ playerId }: { playerId: number }) {
   );
 }
 
+/* ================================================================
+   QUALIFICATIONS
+================================================================ */
+
 function qualifiesForLeaderboard(
   player: PlayerRow,
   category: Category
 ) {
   const stats = player.stats;
 
-  if (!stats) return false;
+  if (!stats) {
+    return false;
+  }
+
+  /*
+    Hitting qualification:
+    minimum 100 AB.
+
+    This is an Offshore Break display qualification,
+    not an official MLB qualification rule.
+  */
 
   if (category.type === "hitting") {
-    // Offshore Break leaderboard qualification:
-    // minimum 100 at-bats for hitting rate/counting stats.
     return (stats.at_bats ?? 0) >= 100;
   }
 
-  // Pitching qualification
+  /*
+    IP leaderboard is a counting statistic,
+    so anyone with at least 1 IP can appear.
+  */
+
   if (category.key === "innings_pitched") {
-    // Anyone with at least 1 IP can appear on the IP leaderboard.
     return (stats.innings_pitched ?? 0) >= 1;
   }
 
-  // ERA, WHIP, K, W, L and ER all require
-  // a meaningful pitching sample.
+  /*
+    Rate stats and other pitching leaderboards
+    require at least 10 IP.
+  */
+
   return (stats.innings_pitched ?? 0) >= 10;
 }
+
+/* ================================================================
+   LEADERBOARD CARD
+================================================================ */
 
 function LeaderboardCard({
   category,
@@ -408,26 +567,30 @@ function LeaderboardCard({
   category: Category;
   players: PlayerRow[];
 }) {
-const ranked = [...players]
-  .filter((player) => {
-    const value =
-      player.stats?.[
-        category.key as keyof PlayerStat
-      ];
+  const ranked = [...players]
+    .filter((player) => {
+      const value =
+        player.stats?.[
+          category.key as keyof PlayerStat
+        ];
 
-    if (value === null || value === undefined) {
-      return false;
-    }
+      if (value === null || value === undefined) {
+        return false;
+      }
 
-    return qualifiesForLeaderboard(player, category);
-  })
+      return qualifiesForLeaderboard(player, category);
+    })
     .sort((a, b) => {
       const aValue = Number(
-        a.stats?.[category.key as keyof PlayerStat] ?? 0
+        a.stats?.[
+          category.key as keyof PlayerStat
+        ] ?? 0
       );
 
       const bValue = Number(
-        b.stats?.[category.key as keyof PlayerStat] ?? 0
+        b.stats?.[
+          category.key as keyof PlayerStat
+        ] ?? 0
       );
 
       return category.direction === "high"
@@ -462,13 +625,26 @@ const ranked = [...players]
         </span>
       </div>
 
+      {/* Qualification note */}
+
+      <div className="border-b border-[#1A2842]/8 px-5 py-2">
+        <p className="font-mono text-[7px] uppercase tracking-[0.12em] text-[#687384]/70">
+          Qualified:{" "}
+          {category.type === "hitting"
+            ? "100+ AB"
+            : category.key === "innings_pitched"
+              ? "1+ IP"
+              : "10+ IP"}
+        </p>
+      </div>
+
       {/* Rows */}
 
       <div>
         {ranked.length === 0 ? (
           <div className="px-5 py-10 text-center">
             <p className="font-mono text-[9px] text-[#687384]">
-              No data available
+              No qualifying data available
             </p>
           </div>
         ) : (
@@ -519,7 +695,7 @@ const ranked = [...players]
 
                 <PlayerHeadshot playerId={player.id} />
 
-                {/* Player */}
+                {/* Player information */}
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-black group-hover:text-[#D85F46]">
@@ -527,7 +703,10 @@ const ranked = [...players]
                   </p>
 
                   <div className="mt-1 flex items-center gap-2">
-                    <TeamLogo teamId={player.team?.id} />
+                    <LeaderboardTeamLogo
+                      teamId={player.team?.id}
+                      teamName={player.team?.name}
+                    />
 
                     <span className="font-mono text-[8px] text-[#687384]">
                       {player.team?.abbreviation ?? "FA"}
@@ -574,19 +753,27 @@ const ranked = [...players]
   );
 }
 
+/* ================================================================
+   MAIN PAGE
+================================================================ */
+
 export default function LeadersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
 
-  const [view, setView] = useState<"hitting" | "pitching">(
-    "hitting"
-  );
+  const [view, setView] = useState<
+    "hitting" | "pitching"
+  >("hitting");
 
   const [teamFilter, setTeamFilter] = useState("All");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /* ================================================================
+     LOAD DATA
+  ================================================================ */
 
   useEffect(() => {
     async function loadData() {
@@ -617,7 +804,11 @@ export default function LeadersPage() {
           .order("name"),
       ]);
 
-      if (playerError || statError || teamError) {
+      if (
+        playerError ||
+        statError ||
+        teamError
+      ) {
         setError(
           "Unable to load leaderboard data. Please refresh the page."
         );
@@ -632,13 +823,31 @@ export default function LeadersPage() {
     loadData();
   }, []);
 
+  /* ================================================================
+     MAPS
+  ================================================================ */
+
   const statMap = useMemo(() => {
-    return new Map(stats.map((stat) => [stat.player_id, stat]));
+    return new Map(
+      stats.map((stat) => [
+        stat.player_id,
+        stat,
+      ])
+    );
   }, [stats]);
 
   const teamMap = useMemo(() => {
-    return new Map(teams.map((team) => [team.id, team]));
+    return new Map(
+      teams.map((team) => [
+        team.id,
+        team,
+      ])
+    );
   }, [teams]);
+
+  /* ================================================================
+     PLAYER ROWS
+  ================================================================ */
 
   const playerRows = useMemo<PlayerRow[]>(() => {
     return players.map((player) => ({
@@ -648,13 +857,23 @@ export default function LeadersPage() {
     }));
   }, [players, statMap, teamMap]);
 
+  /* ================================================================
+     TEAM FILTER
+  ================================================================ */
+
   const filteredPlayers = useMemo(() => {
     return playerRows.filter((player) => {
-      if (teamFilter === "All") return true;
+      if (teamFilter === "All") {
+        return true;
+      }
 
       return player.team_id === teamFilter;
     });
   }, [playerRows, teamFilter]);
+
+  /* ================================================================
+     CURRENT CATEGORIES
+  ================================================================ */
 
   const categories =
     view === "hitting"
@@ -666,6 +885,10 @@ export default function LeadersPage() {
       ? hittingCategories[0]
       : pitchingCategories[0];
 
+  /* ================================================================
+     FEATURED LEADERS
+  ================================================================ */
+
   const primaryLeaders = useMemo(() => {
     return [...filteredPlayers]
       .filter((player) => {
@@ -674,15 +897,17 @@ export default function LeadersPage() {
             primaryCategory.key as keyof PlayerStat
           ];
 
-        if (value === null || value === undefined) {
+        if (
+          value === null ||
+          value === undefined
+        ) {
           return false;
         }
 
-        if (view === "hitting") {
-          return (player.stats?.at_bats ?? 0) >= 100;
-        }
-
-        return (player.stats?.innings_pitched ?? 0) >= 10;
+        return qualifiesForLeaderboard(
+          player,
+          primaryCategory
+        );
       })
       .sort((a, b) => {
         const aValue = Number(
@@ -702,7 +927,14 @@ export default function LeadersPage() {
           : aValue - bValue;
       })
       .slice(0, 5);
-  }, [filteredPlayers, primaryCategory, view]);
+  }, [
+    filteredPlayers,
+    primaryCategory,
+  ]);
+
+  /* ================================================================
+     TEAM COUNT
+  ================================================================ */
 
   const teamCount = useMemo(() => {
     return new Set(
@@ -711,6 +943,10 @@ export default function LeadersPage() {
         .filter(Boolean)
     ).size;
   }, [filteredPlayers]);
+
+  /* ================================================================
+     RENDER
+  ================================================================ */
 
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
@@ -731,8 +967,9 @@ export default function LeadersPage() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-6 text-[#687384]">
-                League-wide statistical leaders from the 2026
-                season, organized across hitting and pitching.
+                League-wide statistical leaders from the
+                2026 season, organized across hitting and
+                pitching.
               </p>
             </div>
 
@@ -800,15 +1037,23 @@ export default function LeadersPage() {
               <select
                 value={teamFilter}
                 onChange={(event) =>
-                  setTeamFilter(event.target.value)
+                  setTeamFilter(
+                    event.target.value
+                  )
                 }
                 className="min-w-[220px] border border-[#1A2842]/20 bg-[#F8F3EA] px-4 py-3 text-xs outline-none focus:border-[#D85F46]"
               >
-                <option value="All">All Teams</option>
+                <option value="All">
+                  All Teams
+                </option>
 
                 {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.abbreviation} — {team.name}
+                  <option
+                    key={team.id}
+                    value={team.id}
+                  >
+                    {team.abbreviation} —{" "}
+                    {team.name}
                   </option>
                 ))}
               </select>
@@ -852,8 +1097,10 @@ export default function LeadersPage() {
           <span className="font-mono text-[9px] text-[#687384]">
             {teamFilter === "All"
               ? "MLB"
-              : teams.find((team) => team.id === teamFilter)
-                  ?.abbreviation ?? ""}
+              : teams.find(
+                    (team) =>
+                      team.id === teamFilter
+                  )?.abbreviation ?? ""}
           </span>
         </div>
 
@@ -871,77 +1118,97 @@ export default function LeadersPage() {
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-            {primaryLeaders.map((player, index) => {
-              const value =
-                player.stats?.[
-                  primaryCategory.key as keyof PlayerStat
-                ] as number | null | undefined;
+            {primaryLeaders.map(
+              (player, index) => {
+                const value =
+                  player.stats?.[
+                    primaryCategory.key as keyof PlayerStat
+                  ] as
+                    | number
+                    | null
+                    | undefined;
 
-              const colors =
-                TEAM_COLORS[player.team?.name ?? ""] ?? {
-                  primary: "#1A2842",
-                  secondary: "#D85F46",
-                };
+                const colors =
+                  TEAM_COLORS[
+                    player.team?.name ?? ""
+                  ] ?? {
+                    primary: "#1A2842",
+                    secondary: "#D85F46",
+                  };
 
-              return (
-                <Link
-                  key={player.id}
-                  href={`/players/${player.id}`}
-                  className={`group relative overflow-hidden border-t-2 bg-[#FCF9F3] p-5 transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(26,40,66,0.08)] ${
-                    index === 0
-                      ? "border-[#D85F46]"
-                      : "border-[#1A2842]"
-                  }`}
-                >
-                  <div
-                    className="absolute right-0 top-0 h-20 w-20 opacity-[0.06]"
-                    style={{
-                      backgroundColor: colors.secondary,
-                    }}
-                  />
+                return (
+                  <Link
+                    key={player.id}
+                    href={`/players/${player.id}`}
+                    className={`group relative overflow-hidden border-t-2 bg-[#FCF9F3] p-5 transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(26,40,66,0.08)] ${
+                      index === 0
+                        ? "border-[#D85F46]"
+                        : "border-[#1A2842]"
+                    }`}
+                  >
+                    <div
+                      className="absolute right-0 top-0 h-20 w-20 opacity-[0.06]"
+                      style={{
+                        backgroundColor:
+                          colors.secondary,
+                      }}
+                    />
 
-                  <div className="flex items-start justify-between">
-                    <span
-                      className={`font-mono text-2xl font-black ${
-                        index === 0
-                          ? "text-[#D85F46]"
-                          : "text-[#1A2842]/20"
-                      }`}
-                    >
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
+                    <div className="flex items-start justify-between">
+                      <span
+                        className={`font-mono text-2xl font-black ${
+                          index === 0
+                            ? "text-[#D85F46]"
+                            : "text-[#1A2842]/20"
+                        }`}
+                      >
+                        {String(
+                          index + 1
+                        ).padStart(2, "0")}
+                      </span>
 
-                    <TeamLogo teamId={player.team?.id} />
-                  </div>
+                      <TeamLogo
+                        teamId={
+                          player.team?.id
+                        }
+                      />
+                    </div>
 
-                  <div className="mt-6">
-                    <PlayerHeadshot playerId={player.id} />
+                    <div className="mt-6">
+                      <PlayerHeadshot
+                        playerId={player.id}
+                      />
 
-                    <p className="mt-4 truncate text-sm font-black group-hover:text-[#D85F46]">
-                      {player.name}
-                    </p>
+                      <p className="mt-4 truncate text-sm font-black group-hover:text-[#D85F46]">
+                        {player.name}
+                      </p>
 
-                    <p className="mt-1 text-[8px] font-black uppercase tracking-[0.15em] text-[#687384]">
-                      {player.team?.abbreviation ?? "FA"}{" "}
-                      · {player.position || "-"}
-                    </p>
-                  </div>
+                      <p className="mt-1 text-[8px] font-black uppercase tracking-[0.15em] text-[#687384]">
+                        {player.team?.abbreviation ??
+                          "FA"}{" "}
+                        ·{" "}
+                        {player.position || "-"}
+                      </p>
+                    </div>
 
-                  <div className="mt-6 border-t border-[#1A2842]/10 pt-4">
-                    <p className="font-mono text-3xl font-black">
-                      {formatStat(
-                        value,
-                        primaryCategory.format
-                      )}
-                    </p>
+                    <div className="mt-6 border-t border-[#1A2842]/10 pt-4">
+                      <p className="font-mono text-3xl font-black">
+                        {formatStat(
+                          value,
+                          primaryCategory.format
+                        )}
+                      </p>
 
-                    <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-                      {primaryCategory.shortLabel}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
+                      <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
+                        {
+                          primaryCategory.shortLabel
+                        }
+                      </p>
+                    </div>
+                  </Link>
+                );
+              }
+            )}
           </div>
         )}
       </section>
@@ -970,13 +1237,15 @@ export default function LeadersPage() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {categories.map((category) => (
-            <LeaderboardCard
-              key={category.key}
-              category={category}
-              players={filteredPlayers}
-            />
-          ))}
+          {categories.map(
+            (category) => (
+              <LeaderboardCard
+                key={category.key}
+                category={category}
+                players={filteredPlayers}
+              />
+            )
+          )}
         </div>
       </section>
 
@@ -993,8 +1262,10 @@ export default function LeadersPage() {
               </p>
 
               <p className="mt-2 text-xs leading-5 text-[#687384]">
-                Offensive leaderboards use the season-level hitting
-                statistics stored in the Offshore Break database.
+                Hitting leaderboards require a
+                minimum of 100 at-bats so rate
+                statistics are not dominated by
+                extremely small samples.
               </p>
             </div>
 
@@ -1004,9 +1275,10 @@ export default function LeadersPage() {
               </p>
 
               <p className="mt-2 text-xs leading-5 text-[#687384]">
-                Pitching leaderboards use innings, run prevention,
-                strikeouts, wins, and losses from the player
-                statistics dataset.
+                Pitching leaderboards require
+                at least 10 innings for most
+                statistics. The innings leaderboard
+                itself requires at least 1 inning.
               </p>
             </div>
 
@@ -1016,8 +1288,9 @@ export default function LeadersPage() {
               </p>
 
               <p className="mt-2 text-xs leading-5 text-[#687384]">
-                Select any player to move from the leaderboard into
-                their full Offshore Break player profile.
+                Select any player to move from
+                the leaderboard into their full
+                Offshore Break player profile.
               </p>
             </div>
           </div>
@@ -1041,8 +1314,9 @@ export default function LeadersPage() {
               </h3>
 
               <p className="mt-3 max-w-lg text-xs leading-5 text-white/40">
-                Explore individual players, team profiles, games,
-                and the rest of the Offshore Break baseball
+                Explore individual players,
+                team profiles, games, and the rest
+                of the Offshore Break baseball
                 database.
               </p>
             </div>
