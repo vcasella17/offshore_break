@@ -58,9 +58,9 @@ type TeamColors = {
 const TEAM_COLORS: Record<string, TeamColors> = {
   "Arizona Diamondbacks": {
     primary: "#A71930",
-    secondary: "#E3D4AD",
-    accent: "#000000",
-    hoverText: "#1A2842",
+    secondary: "#2A9D8F",
+    accent: "#E3D4AD",
+    hoverText: "#FFFFFF",
   },
 
   "Atlanta Braves": {
@@ -114,9 +114,9 @@ const TEAM_COLORS: Record<string, TeamColors> = {
 
   "Colorado Rockies": {
     primary: "#333366",
-    secondary: "#C4CED4",
-    accent: "#000000",
-    hoverText: "#1A2842",
+    secondary: "#7663A8",
+    accent: "#C4CED4",
+    hoverText: "#FFFFFF",
   },
 
   "Detroit Tigers": {
@@ -149,16 +149,16 @@ const TEAM_COLORS: Record<string, TeamColors> = {
 
   "Los Angeles Dodgers": {
     primary: "#005A9C",
-    secondary: "#EF3E42",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
+    secondary: "#D6E7F5",
+    accent: "#EF3E42",
+    hoverText: "#1A2842",
   },
 
   "Miami Marlins": {
     primary: "#00A3E0",
-    secondary: "#EF3340",
-    accent: "#000000",
-    hoverText: "#FFFFFF",
+    secondary: "#7CC7E8",
+    accent: "#EF3340",
+    hoverText: "#1A2842",
   },
 
   "Milwaukee Brewers": {
@@ -177,16 +177,16 @@ const TEAM_COLORS: Record<string, TeamColors> = {
 
   "New York Mets": {
     primary: "#002D72",
-    secondary: "#FF5910",
-    accent: "#FFFFFF",
+    secondary: "#002D72",
+    accent: "#FF5910",
     hoverText: "#FFFFFF",
   },
 
   "New York Yankees": {
     primary: "#003087",
-    secondary: "#E4002B",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
+    secondary: "#C4CED4",
+    accent: "#E4002B",
+    hoverText: "#1A2842",
   },
 
   Athletics: {
@@ -247,9 +247,9 @@ const TEAM_COLORS: Record<string, TeamColors> = {
 
   "Texas Rangers": {
     primary: "#003278",
-    secondary: "#C0111F",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
+    secondary: "#C9DDF2",
+    accent: "#C0111F",
+    hoverText: "#1A2842",
   },
 
   "Toronto Blue Jays": {
