@@ -258,3 +258,72 @@ body {
 .offshore-fade-up {
   animation: offshore-fade-up 450ms ease both;
 }
+/* =========================================================
+   OFFSHORE BREAK ANALYTICS SYSTEM
+   ========================================================= */
+
+::selection {
+  background: #d85f46;
+  color: white;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #f8f3ea;
+  color: #1a2842;
+}
+
+/* Paper / scouting-report grid */
+
+.paper-grid {
+  background-image:
+    linear-gradient(
+      rgba(26, 40, 66, 0.035) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(26, 40, 66, 0.035) 1px,
+      transparent 1px
+    );
+  background-size: 32px 32px;
+}
+
+/* Analytics number styling */
+
+.analytics-number {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
+
+  font-variant-numeric: tabular-nums;
+}
+
+/* Better scrollbar */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eee7dc;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #aaa69d;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1a2842;
+}

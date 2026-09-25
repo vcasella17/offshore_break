@@ -9,26 +9,11 @@ export const metadata: Metadata = {
 };
 
 const navigation = [
-  {
-    href: "/players",
-    label: "Players",
-    number: "01",
-  },
-  {
-    href: "/teams",
-    label: "Teams",
-    number: "02",
-  },
-  {
-    href: "/games",
-    label: "Games",
-    number: "03",
-  },
-  {
-    href: "/compare",
-    label: "Compare",
-    number: "04",
-  },
+  { href: "/players", label: "Players", number: "01" },
+  { href: "/teams", label: "Teams", number: "02" },
+  { href: "/games", label: "Games", number: "03" },
+  { href: "/leaders", label: "Leaders", number: "04" },
+  { href: "/compare", label: "Compare", number: "05" },
 ];
 
 function NavBar() {

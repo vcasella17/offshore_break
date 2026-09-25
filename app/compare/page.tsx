@@ -1,14 +1,17 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type Player = {
   id: number;
   name: string;
-  team_id: string;
-  position: string;
+  team_id: string | null;
+  position: string | null;
+};
+
+type Team = {
+  id: string;
+  name: string;
+  abbreviation: string;
 };
 
 type PlayerStat = {
@@ -28,360 +31,896 @@ type PlayerStat = {
   innings_pitched: number | null;
   wins: number | null;
   losses: number | null;
+  earned_runs: number | null;
+  hits_allowed: number | null;
+  walks_allowed: number | null;
+  strikeouts_pitched: number | null;
   era: number | null;
   whip: number | null;
-  strikeouts_pitched: number | null;
 };
 
-type Team = {
-  id: string;
-  name: string;
-  abbreviation: string;
+type PlayerProfile = {
+  player: Player;
+  team: Team | null;
+  stat: PlayerStat | null;
 };
 
-function Headshot({ playerId }: { playerId: number }) {
-  return (
-    <img
-      src={`https://img.mlbstatic.com/mlb-photos/image/upload/w_300,q_auto:good/v1/people/${playerId}/headshot/67/current`}
-      alt=""
-      className="h-28 w-28 object-contain"
-    />
-  );
-}
+const currentYear = new Date().getFullYear();
 
-function formatAverage(value: number | null | undefined) {
+function formatRate(value: number | null) {
   if (value === null || value === undefined) return "—";
   return value.toFixed(3).replace(/^0/, "");
 }
 
-function formatDecimal(value: number | null | undefined) {
-  if (value === null || value === undefined) return "—";
-  return value.toFixed(3);
-}
-
-function formatNumber(value: number | null | undefined) {
+function formatNumber(value: number | null) {
   if (value === null || value === undefined) return "—";
   return value.toLocaleString();
 }
 
-// Rows to display. "higherIsBetter" decides which side gets highlighted.
-const hittingRows: {
-  label: string;
-  key: keyof PlayerStat;
-  format: (v: number | null | undefined) => string;
-  higherIsBetter: boolean;
-}[] = [
-  { label: "AVG", key: "batting_avg", format: formatAverage, higherIsBetter: true },
-  { label: "OBP", key: "obp", format: formatAverage, higherIsBetter: true },
-  { label: "SLG", key: "slg", format: formatAverage, higherIsBetter: true },
-  { label: "OPS", key: "ops", format: formatDecimal, higherIsBetter: true },
-  { label: "HR", key: "home_runs", format: formatNumber, higherIsBetter: true },
-  { label: "RBI", key: "rbi", format: formatNumber, higherIsBetter: true },
-  { label: "Hits", key: "hits", format: formatNumber, higherIsBetter: true },
-  { label: "Walks", key: "walks", format: formatNumber, higherIsBetter: true },
-  { label: "Strikeouts", key: "strikeouts", format: formatNumber, higherIsBetter: false },
-];
+function formatERA(value: number | null) {
+  if (value === null || value === undefined) return "—";
+  return value.toFixed(2);
+}
 
-const pitchingRows: {
-  label: string;
-  key: keyof PlayerStat;
-  format: (v: number | null | undefined) => string;
-  higherIsBetter: boolean;
-}[] = [
-  { label: "ERA", key: "era", format: formatDecimal, higherIsBetter: false },
-  { label: "WHIP", key: "whip", format: formatDecimal, higherIsBetter: false },
-  { label: "Wins", key: "wins", format: formatNumber, higherIsBetter: true },
-  { label: "Losses", key: "losses", format: formatNumber, higherIsBetter: false },
-  { label: "Strikeouts", key: "strikeouts_pitched", format: formatNumber, higherIsBetter: true },
-  { label: "Innings", key: "innings_pitched", format: formatDecimal, higherIsBetter: true },
-];
+function formatIP(value: number | null) {
+  if (value === null || value === undefined) return "—";
+  return value.toFixed(1);
+}
 
-function PlayerPicker({
+function getK9(stat: PlayerStat | null) {
+  if (
+    !stat ||
+    stat.strikeouts_pitched === null ||
+    stat.innings_pitched === null ||
+    stat.innings_pitched === 0
+  ) {
+    return null;
+  }
+
+  return (stat.strikeouts_pitched / stat.innings_pitched) * 9;
+}
+
+function getBBRate(stat: PlayerStat | null) {
+  if (!stat || !stat.at_bats || stat.at_bats === 0 || stat.walks === null) {
+    return null;
+  }
+
+  return (stat.walks / stat.at_bats) * 100;
+}
+
+function getKRate(stat: PlayerStat | null) {
+  if (
+    !stat ||
+    !stat.at_bats ||
+    stat.at_bats === 0 ||
+    stat.strikeouts === null
+  ) {
+    return null;
+  }
+
+  return (stat.strikeouts / stat.at_bats) * 100;
+}
+
+function getPercentile(
+  value: number | null,
+  population: (number | null)[],
+  lowerIsBetter = false
+) {
+  if (value === null || value === undefined) return null;
+
+  const valid = population.filter(
+    (item): item is number =>
+      item !== null && item !== undefined && Number.isFinite(item)
+  );
+
+  if (valid.length < 2) return 50;
+
+  const better = valid.filter((item) =>
+    lowerIsBetter ? item > value : item < value
+  ).length;
+
+  return Math.round((better / (valid.length - 1)) * 100);
+}
+
+function ProfileBar({
   label,
-  players,
-  teamMap,
-  selectedId,
-  onSelect,
+  left,
+  right,
+  leftValue,
+  rightValue,
 }: {
   label: string;
-  players: Player[];
-  teamMap: Map<string, Team>;
-  selectedId: number | null;
-  onSelect: (id: number) => void;
+  left: string;
+  right: string;
+  leftValue: number | null;
+  rightValue: number | null;
 }) {
-  const [query, setQuery] = useState("");
-
-  const matches = useMemo(() => {
-    if (!query) return [];
-    return players
-      .filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
-      .slice(0, 8);
-  }, [query, players]);
-
-  const selected = players.find((p) => p.id === selectedId);
-
   return (
-    <div className="w-full">
-      <p className="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-[#687384]">
-        {label}
-      </p>
+    <div className="border-b border-white/10 py-5 last:border-b-0">
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/45">
+          {label}
+        </span>
 
-      {selected ? (
-        <div className="flex items-center justify-between border border-[#1A2842]/25 bg-[#F8F3EA] px-4 py-3">
-          <div>
-            <p className="font-bold">{selected.name}</p>
-            <p className="text-xs text-[#687384]">
-              {teamMap.get(selected.team_id)?.abbreviation ?? "FA"} · {selected.position}
-            </p>
+        <span className="font-mono text-[8px] font-bold uppercase tracking-[0.12em] text-white/25">
+          LEAGUE PERCENTILE
+        </span>
+      </div>
+
+      <div className="grid grid-cols-[1fr_70px_1fr] items-center gap-4">
+        <div className="text-right">
+          <span className="analytics-number text-[15px] font-black text-white">
+            {leftValue !== null ? leftValue : "—"}
+          </span>
+
+          <div className="mt-2 ml-auto h-2 max-w-[240px] overflow-hidden bg-white/10">
+            <div
+              className="ml-auto h-full bg-[#D85F46]"
+              style={{
+                width: `${Math.max(0, Math.min(100, leftValue ?? 0))}%`,
+              }}
+            />
           </div>
-          <button
-            onClick={() => {
-              onSelect(0);
-              setQuery("");
-            }}
-            className="text-xs font-bold uppercase tracking-[0.1em] text-[#D85F46]"
-          >
-            Change
-          </button>
-        </div>
-      ) : (
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search for a player..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full border border-[#1A2842]/25 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-[#687384] focus:border-[#1A2842]"
-          />
 
-          {matches.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full border border-[#1A2842]/25 bg-[#F8F3EA] shadow-lg">
-              {matches.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    onSelect(p.id);
-                    setQuery("");
-                  }}
-                  className="block w-full px-4 py-2 text-left text-sm hover:bg-[#59B3AD]/10"
-                >
-                  <span className="font-bold">{p.name}</span>{" "}
-                  <span className="text-[#687384]">
-                    — {teamMap.get(p.team_id)?.abbreviation ?? "FA"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+          <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.08em] text-white/35">
+            {left}
+          </p>
         </div>
-      )}
+
+        <div className="text-center">
+          <span className="font-mono text-[8px] font-black uppercase tracking-[0.15em] text-[#59B3AD]">
+            {label}
+          </span>
+        </div>
+
+        <div>
+          <span className="analytics-number text-[15px] font-black text-white">
+            {rightValue !== null ? rightValue : "—"}
+          </span>
+
+          <div className="mt-2 h-2 max-w-[240px] overflow-hidden bg-white/10">
+            <div
+              className="h-full bg-[#59B3AD]"
+              style={{
+                width: `${Math.max(0, Math.min(100, rightValue ?? 0))}%`,
+              }}
+            />
+          </div>
+
+          <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.08em] text-white/35">
+            {right}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
-export default function ComparePage() {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [stats, setStats] = useState<PlayerStat[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [playerAId, setPlayerAId] = useState<number | null>(null);
-  const [playerBId, setPlayerBId] = useState<number | null>(null);
-
-  useEffect(() => {
-    async function loadData() {
-      const [{ data: playerData }, { data: statData }, { data: teamData }] =
-        await Promise.all([
-          supabase
-            .from("Player")
-            .select("id, name, team_id, position")
-            .order("name")
-            .range(0, 4999),
-
-          supabase
-            .from("PlayerStats")
-            .select(
-              "player_id, season, games, at_bats, hits, home_runs, rbi, walks, strikeouts, batting_avg, obp, slg, ops, innings_pitched, wins, losses, era, whip, strikeouts_pitched"
-            )
-            .eq("season", 2026),
-
-          supabase.from("Teams").select("id, name, abbreviation"),
-        ]);
-
-      setPlayers(playerData ?? []);
-      setStats(statData ?? []);
-      setTeams(teamData ?? []);
-      setLoading(false);
-    }
-
-    loadData();
-  }, []);
-
-  const teamMap = useMemo(
-    () => new Map(teams.map((t) => [t.id, t])),
-    [teams]
-  );
-
-  const statMap = useMemo(
-    () => new Map(stats.map((s) => [s.player_id, s])),
-    [stats]
-  );
-
-  const playerA = players.find((p) => p.id === playerAId);
-  const playerB = players.find((p) => p.id === playerBId);
-  const statA = playerAId ? statMap.get(playerAId) : undefined;
-  const statB = playerBId ? statMap.get(playerBId) : undefined;
-
-  const showPitching =
-    (statA?.era !== undefined && statA?.era !== null) ||
-    (statB?.era !== undefined && statB?.era !== null);
-
-  function renderRow(row: (typeof hittingRows)[number]) {
-    const rawA = statA?.[row.key] as number | null | undefined;
-    const rawB = statB?.[row.key] as number | null | undefined;
-
-    let aWins = false;
-    let bWins = false;
-
-    if (
-      typeof rawA === "number" &&
-      typeof rawB === "number" &&
-      rawA !== rawB
-    ) {
-      if (row.higherIsBetter) {
-        aWins = rawA > rawB;
-        bWins = rawB > rawA;
-      } else {
-        aWins = rawA < rawB;
-        bWins = rawB < rawA;
-      }
-    }
-
-    return (
+function ComparisonRow({
+  label,
+  left,
+  right,
+  leftClass = "",
+  rightClass = "",
+}: {
+  label: string;
+  left: string;
+  right: string;
+  leftClass?: string;
+  rightClass?: string;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_100px_1fr] items-center border-b border-[#1A2842]/10 py-4 last:border-b-0">
       <div
-        key={row.label}
-        className="grid grid-cols-[1fr_auto_1fr] items-center border-b border-[#1A2842]/15 py-4"
+        className={`analytics-number text-right text-[17px] font-black text-[#1A2842] ${leftClass}`}
       >
-        <p
-          className={`text-2xl font-black text-left ${
-            aWins ? "text-[#D85F46]" : ""
-          }`}
-        >
-          {row.format(rawA)}
-        </p>
-
-        <p className="px-6 text-xs font-bold uppercase tracking-[0.15em] text-[#687384]">
-          {row.label}
-        </p>
-
-        <p
-          className={`text-2xl font-black text-right ${
-            bWins ? "text-[#D85F46]" : ""
-          }`}
-        >
-          {row.format(rawB)}
-        </p>
+        {left}
       </div>
+
+      <div className="text-center">
+        <span className="font-mono text-[8px] font-black uppercase tracking-[0.15em] text-[#9AA1AA]">
+          {label}
+        </span>
+      </div>
+
+      <div
+        className={`analytics-number text-[17px] font-black text-[#1A2842] ${rightClass}`}
+      >
+        {right}
+      </div>
+    </div>
+  );
+}
+
+export default async function ComparePage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    player1?: string;
+    player2?: string;
+  }>;
+}) {
+  const params = await searchParams;
+
+  const player1Id = params.player1
+    ? Number(params.player1)
+    : null;
+
+  const player2Id = params.player2
+    ? Number(params.player2)
+    : null;
+
+  const { data: playersData } = await supabase
+    .from("Player")
+    .select("id, name, team_id, position")
+    .order("name", { ascending: true });
+
+  const { data: teamsData } = await supabase
+    .from("Teams")
+    .select("id, name, abbreviation");
+
+  const players = (playersData ?? []) as Player[];
+  const teams = (teamsData ?? []) as Team[];
+
+  const teamMap = new Map(
+    teams.map((team) => [team.id, team])
+  );
+
+  let selectedSeason = currentYear;
+
+  const { data: seasonData } = await supabase
+    .from("PlayerStats")
+    .select("season")
+    .order("season", { ascending: false });
+
+  if (seasonData && seasonData.length > 0) {
+    const seasons = Array.from(
+      new Set(
+        seasonData
+          .map((row) => row.season)
+          .filter(
+            (season): season is number =>
+              typeof season === "number"
+          )
+      )
     );
+
+    if (seasons.length > 0) {
+      selectedSeason = seasons[0];
+    }
   }
 
+  const { data: statsData } = await supabase
+    .from("PlayerStats")
+    .select("*")
+    .eq("season", selectedSeason);
+
+  const stats = (statsData ?? []) as PlayerStat[];
+
+  const statMap = new Map(
+    stats.map((stat) => [stat.player_id, stat])
+  );
+
+  const profile1: PlayerProfile | null = player1Id
+    ? (() => {
+        const player = players.find((p) => p.id === player1Id);
+
+        if (!player) return null;
+
+        return {
+          player,
+          team: player.team_id
+            ? teamMap.get(player.team_id) ?? null
+            : null,
+          stat: statMap.get(player.id) ?? null,
+        };
+      })()
+    : null;
+
+  const profile2: PlayerProfile | null = player2Id
+    ? (() => {
+        const player = players.find((p) => p.id === player2Id);
+
+        if (!player) return null;
+
+        return {
+          player,
+          team: player.team_id
+            ? teamMap.get(player.team_id) ?? null
+            : null,
+          stat: statMap.get(player.id) ?? null,
+        };
+      })()
+    : null;
+
+  const hitterStats = stats.filter(
+    (stat) =>
+      stat.at_bats !== null &&
+      stat.at_bats >= 50
+  );
+
+  const pitchingStats = stats.filter(
+    (stat) =>
+      stat.innings_pitched !== null &&
+      stat.innings_pitched >= 10
+  );
+
+  const avgPopulation = hitterStats.map(
+    (stat) => stat.batting_avg
+  );
+
+  const obpPopulation = hitterStats.map(
+    (stat) => stat.obp
+  );
+
+  const slgPopulation = hitterStats.map(
+    (stat) => stat.slg
+  );
+
+  const opsPopulation = hitterStats.map(
+    (stat) => stat.ops
+  );
+
+  const hrGamePopulation = hitterStats.map((stat) =>
+    stat.games && stat.home_runs !== null
+      ? stat.home_runs / stat.games
+      : null
+  );
+
+  const rbiGamePopulation = hitterStats.map((stat) =>
+    stat.games && stat.rbi !== null
+      ? stat.rbi / stat.games
+      : null
+  );
+
+  const bbRatePopulation = hitterStats.map((stat) =>
+    stat.at_bats && stat.walks !== null
+      ? (stat.walks / stat.at_bats) * 100
+      : null
+  );
+
+  const kAvoidancePopulation = hitterStats.map((stat) =>
+    stat.at_bats && stat.strikeouts !== null
+      ? 100 - (stat.strikeouts / stat.at_bats) * 100
+      : null
+  );
+
+  const eraPopulation = pitchingStats.map(
+    (stat) => stat.era
+  );
+
+  const whipPopulation = pitchingStats.map(
+    (stat) => stat.whip
+  );
+
+  const k9Population = pitchingStats.map((stat) =>
+    stat.innings_pitched && stat.strikeouts_pitched !== null
+      ? (stat.strikeouts_pitched / stat.innings_pitched) * 9
+      : null
+  );
+
+  const getProfile = (profile: PlayerProfile | null) => {
+    const stat = profile?.stat;
+
+    if (!stat) {
+      return {
+        power: null,
+        contact: null,
+        onBase: null,
+        production: null,
+        command: null,
+        swingMiss: null,
+      };
+    }
+
+    return {
+      power: getPercentile(
+        stat.games && stat.home_runs !== null
+          ? stat.home_runs / stat.games
+          : null,
+        hrGamePopulation
+      ),
+
+      contact: getPercentile(
+        stat.batting_avg,
+        avgPopulation
+      ),
+
+      onBase: getPercentile(
+        stat.obp,
+        obpPopulation
+      ),
+
+      production: getPercentile(
+        stat.ops,
+        opsPopulation
+      ),
+
+      command: getPercentile(
+        stat.whip,
+        whipPopulation,
+        true
+      ),
+
+      swingMiss: getPercentile(
+        getK9(stat),
+        k9Population
+      ),
+    };
+  };
+
+  const leftProfile = getProfile(profile1);
+  const rightProfile = getProfile(profile2);
+
+  const isBothPitchers =
+    profile1?.stat?.innings_pitched !== null &&
+    profile1?.stat?.innings_pitched !== undefined &&
+    profile1?.stat?.innings_pitched > 0 &&
+    profile2?.stat?.innings_pitched !== null &&
+    profile2?.stat?.innings_pitched !== undefined &&
+    profile2?.stat?.innings_pitched > 0;
+
+  const hasComparison =
+    profile1 !== null &&
+    profile2 !== null;
+
   return (
-    <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
-      <section className="border-b border-[#1A2842]/20">
-        <div className="mx-auto max-w-5xl px-6 py-14">
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#D85F46]">
-            Head to Head
-          </p>
-          <h1 className="mt-3 text-5xl font-black tracking-[-0.05em]">
-            Compare Players
-          </h1>
-          <p className="mt-3 max-w-xl text-[#687384]">
-            Pick two players to see how their 2026 numbers stack up.
-          </p>
+    <main className="min-h-screen bg-[#F8F3EA]">
+      {/* HERO */}
+      <section className="paper-grid border-b border-[#1A2842]/15">
+        <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-12 md:px-8 md:pb-16 md:pt-16">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="h-[2px] w-10 bg-[#D85F46]" />
+
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-[#687384]">
+              Offshore Break / Head To Head
+            </span>
+          </div>
+
+          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
+            <div>
+              <h1 className="text-[clamp(42px,7vw,86px)] font-black uppercase leading-[0.85] tracking-[-0.07em] text-[#1A2842]">
+                Player
+                <br />
+                <span className="text-[#D85F46]">Compare.</span>
+              </h1>
+
+              <p className="mt-6 max-w-xl text-sm leading-6 text-[#687384]">
+                Put two players side by side and see how their production,
+                performance, and Offshore Profile stack up.
+              </p>
+            </div>
+
+            <div className="border-l-2 border-[#59B3AD] pl-4">
+              <p className="font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-[#687384]">
+                Comparison Season
+              </p>
+
+              <p className="analytics-number mt-1 text-2xl font-black text-[#1A2842]">
+                {selectedSeason}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-6 py-10">
-        {loading ? (
-          <p className="text-sm text-[#687384]">Loading players...</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <PlayerPicker
-                label="Player A"
-                players={players}
-                teamMap={teamMap}
-                selectedId={playerAId}
-                onSelect={(id) => setPlayerAId(id || null)}
-              />
-              <PlayerPicker
-                label="Player B"
-                players={players}
-                teamMap={teamMap}
-                selectedId={playerBId}
-                onSelect={(id) => setPlayerBId(id || null)}
-              />
+      {/* PLAYER SELECTORS */}
+      <section className="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
+        <form
+          action="/compare"
+          method="GET"
+          className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-end"
+        >
+          <div>
+            <label
+              htmlFor="player1"
+              className="mb-2 block font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-[#687384]"
+            >
+              Player One
+            </label>
+
+            <select
+              id="player1"
+              name="player1"
+              defaultValue={player1Id ?? ""}
+              className="h-12 w-full border border-[#1A2842]/20 bg-white px-4 text-[11px] font-black uppercase tracking-[0.04em] text-[#1A2842] outline-none transition focus:border-[#D85F46]"
+            >
+              <option value="">Select player</option>
+
+              {players.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="hidden h-12 items-center justify-center md:flex">
+            <span className="font-black italic text-[#D85F46]">
+              VS
+            </span>
+          </div>
+
+          <div>
+            <label
+              htmlFor="player2"
+              className="mb-2 block font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-[#687384]"
+            >
+              Player Two
+            </label>
+
+            <select
+              id="player2"
+              name="player2"
+              defaultValue={player2Id ?? ""}
+              className="h-12 w-full border border-[#1A2842]/20 bg-white px-4 text-[11px] font-black uppercase tracking-[0.04em] text-[#1A2842] outline-none transition focus:border-[#59B3AD]"
+            >
+              <option value="">Select player</option>
+
+              {players.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            className="h-12 bg-[#1A2842] px-7 text-[9px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#D85F46] md:col-span-3"
+          >
+            Compare Players
+          </button>
+        </form>
+      </section>
+
+      {!hasComparison ? (
+        <section className="mx-auto max-w-[1440px] px-5 pb-20 md:px-8">
+          <div className="border border-dashed border-[#1A2842]/20 bg-white px-6 py-20 text-center">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
+              Data Desk Ready
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black uppercase tracking-[-0.04em] text-[#1A2842]">
+              Select two players
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-md text-xs leading-5 text-[#687384]">
+              Choose two players above to generate a side-by-side comparison
+              using the current Offshore Break season.
+            </p>
+          </div>
+        </section>
+      ) : (
+        <>
+          {/* PLAYER HEADERS */}
+          <section className="mx-auto max-w-[1440px] px-5 pb-10 md:px-8">
+            <div className="grid overflow-hidden border border-[#1A2842]/15 bg-white md:grid-cols-2">
+              <Link
+                href={`/players/${profile1.player.id}`}
+                className="group border-b border-[#1A2842]/15 p-6 transition hover:bg-[#F8F3EA] md:border-b-0 md:border-r"
+              >
+                <div className="flex items-end justify-between gap-6">
+                  <div>
+                    <p className="font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-[#D85F46]">
+                      PLAYER 01
+                    </p>
+
+                    <h2 className="mt-2 text-3xl font-black uppercase leading-none tracking-[-0.05em] text-[#1A2842] md:text-4xl">
+                      {profile1.player.name}
+                    </h2>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-[#687384]">
+                        {profile1.team?.abbreviation ?? "FREE AGENT"}
+                      </span>
+
+                      {profile1.player.position && (
+                        <>
+                          <span className="h-1 w-1 rounded-full bg-[#D85F46]" />
+
+                          <span className="font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-[#687384]">
+                            {profile1.player.position}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <span className="font-black text-[#D85F46] transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </div>
+              </Link>
+
+              <Link
+                href={`/players/${profile2.player.id}`}
+                className="group p-6 transition hover:bg-[#F8F3EA]"
+              >
+                <div className="flex items-end justify-between gap-6">
+                  <div>
+                    <p className="font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-[#59B3AD]">
+                      PLAYER 02
+                    </p>
+
+                    <h2 className="mt-2 text-3xl font-black uppercase leading-none tracking-[-0.05em] text-[#1A2842] md:text-4xl">
+                      {profile2.player.name}
+                    </h2>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-[#687384]">
+                        {profile2.team?.abbreviation ?? "FREE AGENT"}
+                      </span>
+
+                      {profile2.player.position && (
+                        <>
+                          <span className="h-1 w-1 rounded-full bg-[#59B3AD]" />
+
+                          <span className="font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-[#687384]">
+                            {profile2.player.position}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <span className="font-black text-[#59B3AD] transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </div>
+              </Link>
+            </div>
+          </section>
+
+          {/* OFFENSE COMPARISON */}
+          <section className="mx-auto max-w-[1440px] px-5 pb-16 md:px-8">
+            <div className="mb-6">
+              <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
+                01 / Offense
+              </p>
+
+              <h2 className="mt-2 text-3xl font-black uppercase tracking-[-0.05em] text-[#1A2842]">
+                Production
+              </h2>
             </div>
 
-            {playerA && playerB && (
-              <div className="mt-12 border-t border-[#1A2842] pt-8">
-                {/* Headshots + names */}
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 pb-8">
-                  <Link
-                    href={`/players/${playerA.id}`}
-                    className="flex flex-col items-center text-center hover:text-[#D85F46]"
-                  >
-                    <Headshot playerId={playerA.id} />
-                    <p className="mt-3 font-bold">{playerA.name}</p>
-                    <p className="text-xs text-[#687384]">
-                      {teamMap.get(playerA.team_id)?.abbreviation ?? "FA"} ·{" "}
-                      {playerA.position}
-                    </p>
-                  </Link>
+            <div className="border-t-2 border-[#1A2842] bg-white px-5 md:px-10">
+              <ComparisonRow
+                label="AVG"
+                left={formatRate(profile1.stat?.batting_avg ?? null)}
+                right={formatRate(profile2.stat?.batting_avg ?? null)}
+              />
 
-                  <p className="px-4 text-2xl font-black text-[#687384]">VS</p>
+              <ComparisonRow
+                label="OBP"
+                left={formatRate(profile1.stat?.obp ?? null)}
+                right={formatRate(profile2.stat?.obp ?? null)}
+              />
 
-                  <Link
-                    href={`/players/${playerB.id}`}
-                    className="flex flex-col items-center text-center hover:text-[#D85F46]"
-                  >
-                    <Headshot playerId={playerB.id} />
-                    <p className="mt-3 font-bold">{playerB.name}</p>
-                    <p className="text-xs text-[#687384]">
-                      {teamMap.get(playerB.team_id)?.abbreviation ?? "FA"} ·{" "}
-                      {playerB.position}
-                    </p>
-                  </Link>
-                </div>
+              <ComparisonRow
+                label="SLG"
+                left={formatRate(profile1.stat?.slg ?? null)}
+                right={formatRate(profile2.stat?.slg ?? null)}
+              />
 
-                {/* Hitting comparison */}
-                <div className="border-t border-[#1A2842]/20 pt-6">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
-                    Hitting
-                  </p>
-                  {hittingRows.map(renderRow)}
-                </div>
+              <ComparisonRow
+                label="OPS"
+                left={formatRate(profile1.stat?.ops ?? null)}
+                right={formatRate(profile2.stat?.ops ?? null)}
+              />
 
-                {/* Pitching comparison, only if relevant */}
-                {showPitching && (
-                  <div className="mt-10 border-t border-[#1A2842]/20 pt-6">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#D85F46]">
-                      Pitching
-                    </p>
-                    {pitchingRows.map(renderRow)}
-                  </div>
-                )}
+              <ComparisonRow
+                label="HOME RUNS"
+                left={formatNumber(profile1.stat?.home_runs ?? null)}
+                right={formatNumber(profile2.stat?.home_runs ?? null)}
+              />
 
-                {(!statA || !statB) && (
-                  <p className="mt-8 text-sm text-[#687384]">
-                    One or both players don&apos;t have 2026 stats on record yet.
-                  </p>
+              <ComparisonRow
+                label="RBI"
+                left={formatNumber(profile1.stat?.rbi ?? null)}
+                right={formatNumber(profile2.stat?.rbi ?? null)}
+              />
+
+              <ComparisonRow
+                label="HITS"
+                left={formatNumber(profile1.stat?.hits ?? null)}
+                right={formatNumber(profile2.stat?.hits ?? null)}
+              />
+
+              <ComparisonRow
+                label="WALKS"
+                left={formatNumber(profile1.stat?.walks ?? null)}
+                right={formatNumber(profile2.stat?.walks ?? null)}
+              />
+
+              <ComparisonRow
+                label="STRIKEOUTS"
+                left={formatNumber(profile1.stat?.strikeouts ?? null)}
+                right={formatNumber(profile2.stat?.strikeouts ?? null)}
+              />
+            </div>
+          </section>
+
+          {/* PROFILE */}
+          <section className="bg-[#101A2C]">
+            <div className="mx-auto max-w-[1440px] px-5 py-14 md:px-8 md:py-20">
+              <div className="mb-10">
+                <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
+                  02 / Offshore Profile
+                </p>
+
+                <h2 className="mt-2 text-3xl font-black uppercase tracking-[-0.05em] text-white md:text-4xl">
+                  Head To Head
+                </h2>
+
+                <p className="mt-3 max-w-xl text-xs leading-5 text-white/40">
+                  Percentiles compare each player's available season statistics
+                  against the qualifying player pool in Offshore Break.
+                </p>
+              </div>
+
+              <div className="border-t border-white/15">
+                <ProfileBar
+                  label="POWER"
+                  left={profile1.player.name}
+                  right={profile2.player.name}
+                  leftValue={leftProfile.power}
+                  rightValue={rightProfile.power}
+                />
+
+                <ProfileBar
+                  label="CONTACT"
+                  left={profile1.player.name}
+                  right={profile2.player.name}
+                  leftValue={leftProfile.contact}
+                  rightValue={rightProfile.contact}
+                />
+
+                <ProfileBar
+                  label="ON BASE"
+                  left={profile1.player.name}
+                  right={profile2.player.name}
+                  leftValue={leftProfile.onBase}
+                  rightValue={rightProfile.onBase}
+                />
+
+                <ProfileBar
+                  label="PRODUCTION"
+                  left={profile1.player.name}
+                  right={profile2.player.name}
+                  leftValue={leftProfile.production}
+                  rightValue={rightProfile.production}
+                />
+
+                {isBothPitchers && (
+                  <>
+                    <ProfileBar
+                      label="COMMAND"
+                      left={profile1.player.name}
+                      right={profile2.player.name}
+                      leftValue={leftProfile.command}
+                      rightValue={rightProfile.command}
+                    />
+
+                    <ProfileBar
+                      label="SWING & MISS"
+                      left={profile1.player.name}
+                      right={profile2.player.name}
+                      leftValue={leftProfile.swingMiss}
+                      rightValue={rightProfile.swingMiss}
+                    />
+                  </>
                 )}
               </div>
-            )}
-          </>
-        )}
-      </section>
+            </div>
+          </section>
+
+          {/* PITCHING */}
+          {isBothPitchers && (
+            <section className="mx-auto max-w-[1440px] px-5 py-16 md:px-8">
+              <div className="mb-6">
+                <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#D85F46]">
+                  03 / Pitching
+                </p>
+
+                <h2 className="mt-2 text-3xl font-black uppercase tracking-[-0.05em] text-[#1A2842]">
+                  Pitching Matchup
+                </h2>
+              </div>
+
+              <div className="border-t-2 border-[#1A2842] bg-white px-5 md:px-10">
+                <ComparisonRow
+                  label="ERA"
+                  left={formatERA(profile1.stat?.era ?? null)}
+                  right={formatERA(profile2.stat?.era ?? null)}
+                />
+
+                <ComparisonRow
+                  label="WHIP"
+                  left={formatERA(profile1.stat?.whip ?? null)}
+                  right={formatERA(profile2.stat?.whip ?? null)}
+                />
+
+                <ComparisonRow
+                  label="INNINGS"
+                  left={formatIP(profile1.stat?.innings_pitched ?? null)}
+                  right={formatIP(profile2.stat?.innings_pitched ?? null)}
+                />
+
+                <ComparisonRow
+                  label="STRIKEOUTS"
+                  left={formatNumber(
+                    profile1.stat?.strikeouts_pitched ?? null
+                  )}
+                  right={formatNumber(
+                    profile2.stat?.strikeouts_pitched ?? null
+                  )}
+                />
+
+                <ComparisonRow
+                  label="K / 9"
+                  left={formatNumber(getK9(profile1.stat),)}
+                  right={formatNumber(getK9(profile2.stat))}
+                />
+
+                <ComparisonRow
+                  label="WINS"
+                  left={formatNumber(profile1.stat?.wins ?? null)}
+                  right={formatNumber(profile2.stat?.wins ?? null)}
+                />
+
+                <ComparisonRow
+                  label="LOSSES"
+                  left={formatNumber(profile1.stat?.losses ?? null)}
+                  right={formatNumber(profile2.stat?.losses ?? null)}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* SEASON SNAPSHOT */}
+          <section className="border-t border-[#1A2842]/15 bg-[#EEE7DC]">
+            <div className="mx-auto max-w-[1440px] px-5 py-12 md:px-8">
+              <div className="grid gap-8 md:grid-cols-2">
+                <div>
+                  <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#D85F46]">
+                    Player 01
+                  </p>
+
+                  <Link
+                    href={`/players/${profile1.player.id}`}
+                    className="mt-3 block text-xl font-black uppercase tracking-[-0.04em] text-[#1A2842] hover:text-[#D85F46]"
+                  >
+                    View {profile1.player.name}
+                    {"'"}s full profile →
+                  </Link>
+                </div>
+
+                <div>
+                  <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
+                    Player 02
+                  </p>
+
+                  <Link
+                    href={`/players/${profile2.player.id}`}
+                    className="mt-3 block text-xl font-black uppercase tracking-[-0.04em] text-[#1A2842] hover:text-[#59B3AD]"
+                  >
+                    View {profile2.player.name}
+                    {"'"}s full profile →
+                  </Link>
+                </div>
+              </div>
+
+              <div className="mt-10 border-t border-[#1A2842]/15 pt-5">
+                <p className="font-mono text-[8px] uppercase tracking-[0.15em] text-[#687384]">
+                  OFFSHORE BREAK / {selectedSeason} COMPARISON / TRADITIONAL
+                  PLAYER DATA
+                </p>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 }
