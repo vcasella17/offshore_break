@@ -19,15 +19,15 @@ type Game = {
 type MlbTeam = {
   id: number;
   name: string;
-  abbreviation: string;
-  teamName: string;
+  abbreviation?: string;
+  teamName?: string;
 };
 
 type MlbGame = {
   gamePk: number;
   gameDate: string;
   status: {
-    abstractGameState: "Preview" | "Live" | "Final" | string;
+    abstractGameState: string;
     detailedState: string;
     codedGameState: string;
   };
@@ -58,8 +58,16 @@ type MlbScheduleResponse = {
   }[];
 };
 
+function getLocalDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 async function getTodaysGames(): Promise<MlbGame[]> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDateString(new Date());
 
   try {
     const response = await fetch(
@@ -72,13 +80,14 @@ async function getTodaysGames(): Promise<MlbGame[]> {
     );
 
     if (!response.ok) {
+      console.error("MLB schedule request failed:", response.status);
       return [];
     }
 
     const data: MlbScheduleResponse = await response.json();
-
-    return data.dates?.[0]?.games ?? [];
-  } catch {
+    return data.dates?.flatMap((date) => date.games) ?? [];
+  } catch (error) {
+    console.error("Unable to load MLB schedule:", error);
     return [];
   }
 }
@@ -88,21 +97,21 @@ function getStatus(game: MlbGame) {
 
   if (state === "Live") {
     return {
-      label: "LIVE",
+      label: "Live",
       className: "bg-[#D85F46] text-white",
     };
   }
 
   if (state === "Final") {
     return {
-      label: "FINAL",
+      label: "Final",
       className: "bg-[#1A2842] text-white",
     };
   }
 
   return {
-    label: game.status.detailedState.toUpperCase(),
-    className: "bg-[#E7E1D7] text-[#1A2842]",
+    label: game.status.detailedState || "Scheduled",
+    className: "bg-[#E8E1D7] text-[#1A2842]",
   };
 }
 
@@ -113,17 +122,15 @@ function getLiveInning(game: MlbGame) {
 
   const inning = game.linescore.currentInning;
   const ordinal = game.linescore.currentInningOrdinal;
-  const state = game.linescore.inningState;
+  const inningState = game.linescore.inningState;
 
-  if (!inning) {
-    return "LIVE";
-  }
+  if (!inning) return "In progress";
 
   if (ordinal) {
-    return `${state ?? ""} ${ordinal}`.trim();
+    return `${inningState ?? ""} ${ordinal}`.trim();
   }
 
-  return `INNING ${inning}`;
+  return `Inning ${inning}`;
 }
 
 function formatGameTime(gameDate: string) {
@@ -133,8 +140,8 @@ function formatGameTime(gameDate: string) {
   });
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString([], {
+function formatDate(date: Date) {
+  return date.toLocaleDateString([], {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -153,10 +160,51 @@ function TeamLogo({
     <img
       src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
       alt=""
+      aria-hidden="true"
       width={size}
       height={size}
-      className="object-contain"
+      loading="lazy"
+      className="shrink-0 object-contain"
     />
+  );
+}
+
+function ScoreRow({
+  team,
+  score,
+  winner,
+}: {
+  team: MlbTeam;
+  score?: number;
+  winner?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <TeamLogo teamId={team.id} />
+
+        <div className="min-w-0">
+          <p
+            className={`truncate text-sm ${
+              winner ? "font-bold text-[#1A2842]" : "font-medium text-[#687384]"
+            }`}
+          >
+            {team.name}
+          </p>
+          <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[#8B887F]">
+            {team.abbreviation ?? ""}
+          </p>
+        </div>
+      </div>
+
+      <p
+        className={`shrink-0 font-mono text-2xl ${
+          winner ? "font-bold text-[#1A2842]" : "font-medium text-[#687384]"
+        }`}
+      >
+        {score ?? "—"}
+      </p>
+    </div>
   );
 }
 
@@ -164,90 +212,53 @@ function TodayGameCard({ game }: { game: MlbGame }) {
   const status = getStatus(game);
   const liveInning = getLiveInning(game);
 
-  const awayScore =
-    game.teams.away.score !== undefined ? game.teams.away.score : "-";
-
-  const homeScore =
-    game.teams.home.score !== undefined ? game.teams.home.score : "-";
-
   return (
     <Link
       href={`/games/${game.gamePk}`}
-      className="group block overflow-hidden rounded-2xl border border-[#DED7CC] bg-white transition hover:-translate-y-0.5 hover:border-[#59B3AD] hover:shadow-lg"
+      className="group block border-t-2 border-[#1A2842] bg-[#FCF9F3] transition hover:-translate-y-0.5 hover:border-[#D85F46] hover:shadow-[0_12px_30px_rgba(26,40,66,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46]"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#E8E1D7] px-5 py-3">
-        <div className="text-xs font-medium uppercase tracking-[0.16em] text-[#77736C]">
+      <div className="flex items-center justify-between gap-3 border-b border-[#1A2842]/10 px-5 py-4">
+        <p className="font-mono text-xs text-[#687384]">
           {formatGameTime(game.gameDate)}
-        </div>
+        </p>
 
-        <div
-          className={`rounded-full px-3 py-1 text-[10px] font-bold tracking-[0.14em] ${status.className}`}
+        <span
+          className={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${status.className}`}
         >
           {status.label}
-        </div>
+        </span>
       </div>
 
-      {/* Teams */}
-      <div className="px-5 py-5">
-        <div className="space-y-4">
-          {/* Away */}
-          <div className="flex items-center justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <TeamLogo teamId={game.teams.away.team.id} />
+      <div className="space-y-4 px-5 py-5">
+        <ScoreRow
+          team={game.teams.away.team}
+          score={game.teams.away.score}
+          winner={game.teams.away.isWinner}
+        />
 
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-[#1A2842]">
-                  {game.teams.away.team.name}
-                </div>
+        <div className="ml-[54px] border-t border-dashed border-[#1A2842]/15" />
 
-                <div className="text-[11px] uppercase tracking-wider text-[#8B867D]">
-                  {game.teams.away.team.abbreviation}
-                </div>
-              </div>
-            </div>
+        <ScoreRow
+          team={game.teams.home.team}
+          score={game.teams.home.score}
+          winner={game.teams.home.isWinner}
+        />
 
-            <div className="text-2xl font-bold text-[#1A2842]">
-              {awayScore}
-            </div>
-          </div>
-
-          {/* Home */}
-          <div className="flex items-center justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <TeamLogo teamId={game.teams.home.team.id} />
-
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-[#1A2842]">
-                  {game.teams.home.team.name}
-                </div>
-
-                <div className="text-[11px] uppercase tracking-wider text-[#8B867D]">
-                  {game.teams.home.team.abbreviation}
-                </div>
-              </div>
-            </div>
-
-            <div className="text-2xl font-bold text-[#1A2842]">
-              {homeScore}
-            </div>
-          </div>
-        </div>
-
-        {/* Live information */}
         {liveInning && (
-          <div className="mt-5 rounded-xl bg-[#F4EEE5] px-4 py-3 text-center">
-            <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#D85F46]">
-              {liveInning}
-            </span>
-          </div>
+          <p className="border-t border-[#1A2842]/10 pt-3 text-center text-xs font-semibold text-[#D85F46]">
+            {liveInning}
+          </p>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-[#E8E1D7] px-5 py-3 text-right">
-        <span className="text-xs font-semibold text-[#59A7A2] transition group-hover:text-[#D85F46]">
-          View Game →
+      <div className="flex items-center justify-between border-t border-[#1A2842]/10 px-5 py-3">
+        <span className="text-xs text-[#687384]">
+          {game.status.abstractGameState === "Final"
+            ? "Final score"
+            : "Game details"}
+        </span>
+        <span className="text-xs font-semibold text-[#1A2842] transition group-hover:text-[#D85F46]">
+          View game →
         </span>
       </div>
     </Link>
@@ -267,67 +278,79 @@ function HistoricalGameCard({
   return (
     <Link
       href={`/games/${game.id}`}
-      className="group block rounded-2xl border border-[#DED7CC] bg-white transition hover:-translate-y-0.5 hover:border-[#59B3AD] hover:shadow-lg"
+      className="group block border-t-2 border-[#1A2842] bg-[#FCF9F3] transition hover:-translate-y-0.5 hover:border-[#D85F46] hover:shadow-[0_12px_30px_rgba(26,40,66,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46]"
     >
-      <div className="flex items-center justify-between border-b border-[#E8E1D7] px-5 py-3">
-        <div className="text-xs font-medium uppercase tracking-[0.16em] text-[#77736C]">
+      <div className="flex items-center justify-between gap-3 border-b border-[#1A2842]/10 px-5 py-4">
+        <p className="font-mono text-xs text-[#687384]">
           {formatGameTime(game.game_date)}
+        </p>
+        <span className="bg-[#1A2842] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
+          Final
+        </span>
+      </div>
+
+      <div className="space-y-4 px-5 py-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-[#1A2842]">
+              {away?.name ?? "Away team"}
+            </p>
+            <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[#8B887F]">
+              {away?.abbreviation ?? ""}
+            </p>
+          </div>
+          <p className="font-mono text-2xl font-bold text-[#1A2842]">
+            {game.away_score ?? "—"}
+          </p>
         </div>
 
-        <div className="rounded-full bg-[#1A2842] px-3 py-1 text-[10px] font-bold tracking-[0.14em] text-white">
-          FINAL
+        <div className="ml-1 border-t border-dashed border-[#1A2842]/15" />
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-[#1A2842]">
+              {home?.name ?? "Home team"}
+            </p>
+            <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[#8B887F]">
+              {home?.abbreviation ?? ""}
+            </p>
+          </div>
+          <p className="font-mono text-2xl font-bold text-[#1A2842]">
+            {game.home_score ?? "—"}
+          </p>
         </div>
       </div>
 
-      <div className="px-5 py-5">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-[#1A2842]">
-                {away?.name ?? game.away_team_id}
-              </div>
-
-              <div className="text-[11px] uppercase tracking-wider text-[#8B867D]">
-                {away?.abbreviation ?? ""}
-              </div>
-            </div>
-
-            <div className="text-2xl font-bold text-[#1A2842]">
-              {game.away_score ?? "-"}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-[#1A2842]">
-                {home?.name ?? game.home_team_id}
-              </div>
-
-              <div className="text-[11px] uppercase tracking-wider text-[#8B867D]">
-                {home?.abbreviation ?? ""}
-              </div>
-            </div>
-
-            <div className="text-2xl font-bold text-[#1A2842]">
-              {game.home_score ?? "-"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-[#E8E1D7] px-5 py-3 text-right">
-        <span className="text-xs font-semibold text-[#59A7A2] transition group-hover:text-[#D85F46]">
-          View Box Score →
+      <div className="flex items-center justify-between border-t border-[#1A2842]/10 px-5 py-3">
+        <span className="text-xs text-[#687384]">Box score</span>
+        <span className="text-xs font-semibold text-[#1A2842] transition group-hover:text-[#D85F46]">
+          View game →
         </span>
       </div>
     </Link>
   );
 }
 
+function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="border-t-2 border-[#1A2842] bg-[#FCF9F3] px-6 py-12">
+      <h3 className="text-lg font-bold text-[#1A2842]">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-[#687384]">{description}</p>
+    </div>
+  );
+}
+
 export default async function GamesPage() {
+  const today = new Date();
+
   const [todaysGames, historicalResult] = await Promise.all([
     getTodaysGames(),
-
     supabase
       .from("Games")
       .select(
@@ -337,7 +360,11 @@ export default async function GamesPage() {
       .limit(30),
   ]);
 
-  const historicalGames = historicalResult.data ?? [];
+  const historicalGames: Game[] = historicalResult.data ?? [];
+
+  if (historicalResult.error) {
+    console.error("Unable to load historical games:", historicalResult.error);
+  }
 
   const teamIds = [
     ...new Set(
@@ -348,15 +375,19 @@ export default async function GamesPage() {
     ),
   ];
 
-  const { data: teams } = teamIds.length
+  const { data: teams, error: teamsError } = teamIds.length
     ? await supabase
         .from("Teams")
         .select("id, name, abbreviation")
         .in("id", teamIds)
-    : { data: [] };
+    : { data: [], error: null };
+
+  if (teamsError) {
+    console.error("Unable to load teams for recent games:", teamsError);
+  }
 
   const teamMap = new Map(
-    (teams ?? []).map((team) => [team.id, team])
+    (teams ?? []).map((team) => [team.id, team as Team])
   );
 
   const liveGames = todaysGames.filter(
@@ -371,74 +402,71 @@ export default async function GamesPage() {
     (game) => game.status.abstractGameState === "Final"
   );
 
+  const otherGames = todaysGames.filter(
+    (game) =>
+      !["Live", "Preview", "Final"].includes(game.status.abstractGameState)
+  );
+
   return (
-    <main className="min-h-screen bg-[#F8F3EA]">
-      {/* Page Header */}
-      <section className="border-b border-[#DED7CC] bg-[#F8F3EA]">
-        <div className="mx-auto max-w-7xl px-6 py-12 md:px-10">
-          <div className="max-w-3xl">
-            <div className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#D85F46]">
-              Around the League
+    <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+      <section className="border-b border-[#1A2842]/15">
+        <div className="mx-auto max-w-[1440px] px-5 py-11 md:px-8 md:py-14">
+          <div className="flex items-center gap-3">
+            <span className="h-[2px] w-8 bg-[#D85F46]" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#687384]">
+              The schedule
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+            <div>
+              <h1 className="text-5xl font-black tracking-[-0.055em] md:text-7xl">
+                Games
+              </h1>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-[#687384]">
+                Today’s matchups and recent results from around Major League
+                Baseball.
+              </p>
             </div>
 
-            <h1 className="text-4xl font-bold tracking-tight text-[#1A2842] md:text-5xl">
-              Games
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[#68645E]">
-              Follow today&apos;s action live and explore recent results from
-              around Major League Baseball.
-            </p>
+            <p className="text-sm text-[#687384]">{formatDate(today)}</p>
           </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-6 py-10 md:px-10">
-        {/* TODAY */}
-        <section>
-          <div className="mb-6 flex items-end justify-between">
+      <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
+        <section aria-labelledby="today-heading">
+          <div className="mb-6 flex items-end justify-between gap-4 border-b border-[#1A2842]/15 pb-4">
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#59A7A2]">
-                Live Feed
-              </div>
-
-              <h2 className="mt-1 text-2xl font-bold text-[#1A2842]">
-                Today
-              </h2>
-
-              <p className="mt-1 text-sm text-[#77736C]">
-                {formatDate(new Date().toISOString())}
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D85F46]">
+                {liveGames.length > 0 ? "In progress" : "The daily slate"}
               </p>
+              <h2 id="today-heading" className="mt-1 text-2xl font-bold">
+                Today&apos;s games
+              </h2>
             </div>
 
             {liveGames.length > 0 && (
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#D85F46]">
+              <p className="flex items-center gap-2 text-xs font-semibold text-[#D85F46]">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[#D85F46]" />
-                {liveGames.length} Live
-              </div>
+                {liveGames.length} live
+              </p>
             )}
           </div>
 
           {todaysGames.length === 0 ? (
-            <div className="rounded-2xl border border-[#DED7CC] bg-white px-6 py-12 text-center">
-              <div className="text-lg font-semibold text-[#1A2842]">
-                No games today
-              </div>
-
-              <p className="mt-2 text-sm text-[#77736C]">
-                Check back during the next slate of games.
-              </p>
-            </div>
+            <EmptyState
+              title="No games on today"
+              description="There isn’t a game on the MLB schedule today. Check back for the next slate."
+            />
           ) : (
-            <>
-              {/* Live */}
+            <div className="space-y-9">
               {liveGames.length > 0 && (
-                <div className="mb-8">
-                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#D85F46]">
-                    In Progress
-                  </div>
-
-                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#D85F46]">
+                    Live now
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {liveGames.map((game) => (
                       <TodayGameCard key={game.gamePk} game={game} />
                     ))}
@@ -446,14 +474,12 @@ export default async function GamesPage() {
                 </div>
               )}
 
-              {/* Scheduled */}
               {scheduledGames.length > 0 && (
-                <div className="mb-8">
-                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#77736C]">
-                    Upcoming
-                  </div>
-
-                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#687384]">
+                    Coming up
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {scheduledGames.map((game) => (
                       <TodayGameCard key={game.gamePk} game={game} />
                     ))}
@@ -461,46 +487,66 @@ export default async function GamesPage() {
                 </div>
               )}
 
-              {/* Final */}
               {finalGames.length > 0 && (
                 <div>
-                  <div className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#77736C]">
-                    Completed
-                  </div>
-
-                  <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#687384]">
+                    Final
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {finalGames.map((game) => (
                       <TodayGameCard key={game.gamePk} game={game} />
                     ))}
                   </div>
                 </div>
               )}
-            </>
+
+              {otherGames.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#687384]">
+                    Other games
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {otherGames.map((game) => (
+                      <TodayGameCard key={game.gamePk} game={game} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </section>
 
-        {/* RECENT RESULTS */}
-        <section className="mt-16">
-          <div className="mb-6">
-            <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#59A7A2]">
-              Archive
-            </div>
-
-            <h2 className="mt-1 text-2xl font-bold text-[#1A2842]">
-              Recent Results
+        <section
+          aria-labelledby="recent-results-heading"
+          className="mt-16 border-t border-[#1A2842]/15 pt-10"
+        >
+          <div className="mb-6 border-b border-[#1A2842]/15 pb-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D85F46]">
+              From the database
+            </p>
+            <h2
+              id="recent-results-heading"
+              className="mt-1 text-2xl font-bold"
+            >
+              Recent results
             </h2>
-
-            <p className="mt-1 text-sm text-[#77736C]">
-              Completed games from your Offshore Break database.
+            <p className="mt-1 text-sm text-[#687384]">
+              Recently recorded games and box scores.
             </p>
           </div>
 
-          {historicalGames.length === 0 ? (
-            <div className="rounded-2xl border border-[#DED7CC] bg-white px-6 py-12 text-center text-sm text-[#77736C]">
-              No historical games available.
-            </div>
+          {historicalResult.error ? (
+            <EmptyState
+              title="Recent results are unavailable"
+              description="We couldn’t load the saved game results. Please try again later."
+            />
+          ) : historicalGames.length === 0 ? (
+            <EmptyState
+              title="No recent results yet"
+              description="Saved game results will appear here when they’re available."
+            />
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {historicalGames.map((game) => (
                 <HistoricalGameCard
                   key={game.id}
@@ -511,6 +557,13 @@ export default async function GamesPage() {
             </div>
           )}
         </section>
+
+        <div className="mt-10 border-t border-[#1A2842]/15 pt-5">
+          <p className="text-xs leading-5 text-[#8B887F]">
+            Today&apos;s schedule is provided by MLB. Recent results are from
+            the Offshore Break database.
+          </p>
+        </div>
       </div>
     </main>
   );

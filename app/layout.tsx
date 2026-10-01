@@ -4,145 +4,146 @@ import Image from "next/image";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Offshore Break",
+  title: {
+    default: "Offshore Break",
+    template: "%s | Offshore Break",
+  },
   description: "Baseball stats, told as stories.",
 };
 
 const navigation = [
-  { href: "/players", label: "Players", number: "01" },
-  { href: "/teams", label: "Teams", number: "02" },
-  { href: "/games", label: "Games", number: "03" },
-  { href: "/leaders", label: "Leaders", number: "04" },
-  { href: "/compare", label: "Compare", number: "05" },
+  { href: "/players", label: "Players" },
+  { href: "/teams", label: "Teams" },
+  { href: "/games", label: "Games" },
+  { href: "/leaders", label: "Leaders" },
+  { href: "/compare", label: "Compare" },
 ];
 
 function NavBar() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#1A2842]/15 bg-[#F8F3EA]/95 backdrop-blur-md">
-      <nav className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between px-5 md:px-8">
-        {/* BRAND */}
+      <nav
+        aria-label="Main navigation"
+        className="mx-auto flex h-[70px] max-w-[1440px] items-center justify-between px-5 md:px-8"
+      >
         <Link
           href="/"
-          className="group flex items-center gap-3"
+          aria-label="Offshore Break home"
+          className="group flex shrink-0 items-center gap-3 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D85F46]"
         >
-          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden border border-[#1A2842]/20 bg-[#1A2842]">
+          <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden border border-[#1A2842]/20 bg-[#1A2842]">
             <Image
               src="/logo.png"
-              alt="Offshore Break"
+              alt=""
               width={32}
               height={32}
+              priority
               className="relative z-10 object-contain"
             />
-
-            <div
-              className="absolute bottom-0 left-0 h-[3px] w-full bg-[#D85F46]"
-              aria-hidden
+            <span
+              aria-hidden="true"
+              className="absolute bottom-0 left-0 h-[3px] w-full bg-[#D85F46] transition-colors group-hover:bg-[#59B3AD]"
             />
-          </div>
+          </span>
 
-          <div className="leading-none">
-            <div className="text-[19px] font-black tracking-[-0.055em] text-[#1A2842]">
+          <span className="leading-none">
+            <span className="block text-[17px] font-black tracking-[-0.055em] text-[#1A2842] sm:text-[19px]">
               OFFSHORE{" "}
               <span className="text-[#D85F46]">BREAK</span>
-            </div>
-
-            <div className="mt-1.5 text-[8px] font-black uppercase tracking-[0.25em] text-[#59B3AD]">
-              Baseball Analytics
-            </div>
-          </div>
+            </span>
+            <span className="mt-1.5 block text-[8px] font-semibold uppercase tracking-[0.2em] text-[#687384]">
+              Baseball, by the numbers
+            </span>
+          </span>
         </Link>
 
-        {/* CENTER NAV */}
-        <div className="hidden items-stretch md:flex">
+        <div className="hidden h-full items-stretch md:flex">
           {navigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="group relative flex h-[76px] items-center gap-3 px-5 text-[#1A2842]"
+              className="group relative flex h-full items-center px-4 text-[#1A2842] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#D85F46] lg:px-5"
             >
-              <span className="font-mono text-[8px] font-bold text-[#9AA1AA] transition-colors group-hover:text-[#D85F46]">
-                {item.number}
-              </span>
-
-              <span className="text-[11px] font-black uppercase tracking-[0.12em]">
+              <span className="text-[11px] font-semibold transition-colors group-hover:text-[#D85F46]">
                 {item.label}
               </span>
-
-              <span className="absolute bottom-0 left-5 right-5 h-[2px] origin-left scale-x-0 bg-[#D85F46] transition-transform duration-200 group-hover:scale-x-100" />
+              <span
+                aria-hidden="true"
+                className="absolute bottom-0 left-4 right-4 h-[2px] origin-left scale-x-0 bg-[#D85F46] transition-transform duration-200 group-hover:scale-x-100 lg:left-5 lg:right-5"
+              />
             </Link>
           ))}
         </div>
 
-        {/* RIGHT SIDE */}
-        <div className="flex items-center gap-3">
-          <div className="hidden border-l border-[#1A2842]/15 pl-5 text-right sm:block">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-              Data Desk
-            </p>
-
-            <p className="mt-1 flex items-center justify-end gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#1A2842]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#59B3AD]" />
-              Live
-            </p>
-          </div>
-
-          <Link
-            href="/players"
-            className="flex h-9 items-center border border-[#1A2842] bg-[#1A2842] px-4 text-[9px] font-black uppercase tracking-[0.14em] text-white transition hover:bg-[#D85F46] hover:border-[#D85F46]"
-          >
-            Explore
-          </Link>
-        </div>
+        <Link
+          href="/players"
+          className="hidden h-9 items-center border border-[#1A2842] px-4 text-[10px] font-semibold text-[#1A2842] transition hover:border-[#D85F46] hover:bg-[#D85F46] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D85F46] sm:flex"
+        >
+          Browse players
+          <span aria-hidden="true" className="ml-2">
+            →
+          </span>
+        </Link>
       </nav>
 
-      {/* MOBILE NAV */}
-      <div className="border-t border-[#1A2842]/10 md:hidden">
-        <div className="flex overflow-x-auto px-4">
+      <nav
+        aria-label="Mobile navigation"
+        className="border-t border-[#1A2842]/10 md:hidden"
+      >
+        <div className="flex overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="whitespace-nowrap px-4 py-3 text-[9px] font-black uppercase tracking-[0.15em] text-[#687384] transition hover:text-[#D85F46]"
+              className="shrink-0 px-4 py-3 text-xs font-medium text-[#687384] transition hover:text-[#D85F46] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#D85F46]"
             >
               {item.label}
             </Link>
           ))}
         </div>
-      </div>
+      </nav>
     </header>
   );
 }
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-[#1A2842]/15 bg-[#101A2C] text-white">
-      <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8">
+    <footer className="border-t border-[#101A2C] bg-[#1A2842] text-[#F8F3EA]">
+      <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-12">
         <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div>
-            <div className="text-lg font-black tracking-[-0.04em]">
-              OFFSHORE{" "}
-              <span className="text-[#D85F46]">BREAK</span>
-            </div>
+            <Link
+              href="/"
+              className="inline-block rounded-sm text-lg font-black tracking-[-0.04em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#59B3AD]"
+            >
+              OFFSHORE <span className="text-[#D85F46]">BREAK</span>
+            </Link>
 
-            <p className="mt-2 max-w-sm text-xs leading-5 text-white/40">
-              Baseball stats, told as stories.
+            <p className="mt-2 max-w-sm text-sm leading-6 text-white/55">
+              A closer look at the players, clubs, and numbers behind the game.
             </p>
           </div>
 
-          <div className="text-left md:text-right">
-            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">
-              Data Infrastructure
-            </p>
-
-            <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">
-              MLB · Statcast · Supabase
-            </p>
-          </div>
+          <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-5 gap-y-2">
+            {navigation.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm text-white/60 transition hover:text-[#F8F3EA] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#59B3AD]"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
-        <div className="mt-8 border-t border-white/10 pt-5">
-          <p className="font-mono text-[8px] uppercase tracking-[0.15em] text-white/25">
-            OFFSHORE BREAK / BASEBALL ANALYTICS / {new Date().getFullYear()}
+        <div className="mt-8 flex flex-col justify-between gap-3 border-t border-white/15 pt-5 sm:flex-row sm:items-center">
+          <p className="text-xs text-white/40">
+            Baseball stats, told as stories.
+          </p>
+
+          <p className="font-mono text-[10px] text-white/35">
+            © {new Date().getFullYear()} Offshore Break
           </p>
         </div>
       </div>
@@ -157,13 +158,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-[#F8F3EA] text-[#1A2842] antialiased">
+      <body className="flex min-h-screen flex-col bg-[#F8F3EA] text-[#1A2842] antialiased">
         <NavBar />
-
-        <div className="min-h-screen">
-          {children}
-        </div>
-
+        <main className="flex-1">{children}</main>
         <SiteFooter />
       </body>
     </html>
