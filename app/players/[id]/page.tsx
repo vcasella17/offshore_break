@@ -287,7 +287,7 @@ export default async function PlayerPage({
   if (!player) {
     return (
       <main className="min-h-screen bg-[#F8F3EA] px-6 py-20 text-[#1A2842]">
-        <div className="mx-auto max-w-7xl">
+        <div className="container-wide ">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D85F46]">
             Offshore Break
           </p>
@@ -586,7 +586,7 @@ export default async function PlayerPage({
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
       <section className="overflow-hidden bg-[#101A2C] text-white">
-        <div className="mx-auto max-w-[1440px]">
+        <div className="container-wide ">
           <div className="grid min-h-[430px] lg:grid-cols-[330px_1fr_280px]">
             <div className="relative flex items-end justify-center overflow-hidden border-x border-white/10 bg-[#0B1423]">
               <div className="absolute left-6 top-6">
@@ -771,7 +771,7 @@ export default async function PlayerPage({
       </section>
 
       <div className="border-b border-[#1A2842]/15 bg-[#101A2C] text-white">
-        <div className="mx-auto flex max-w-[1440px] overflow-x-auto px-5 md:px-8">
+        <div className="container-page flex overflow-x-auto">
           <a
             href="#profile"
             className="border-b-2 border-[#D85F46] px-5 py-4 text-[9px] font-black uppercase tracking-[0.18em]"
@@ -795,7 +795,7 @@ export default async function PlayerPage({
 
       <section
         id="profile"
-        className="paper-grid mx-auto max-w-[1440px] px-5 py-12 md:px-8"
+        className="container-page paper-grid py-12"
       >
         <SectionHeader
           eyebrow="Offshore Profile"
@@ -862,7 +862,7 @@ export default async function PlayerPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1440px] px-5 pb-12 md:px-8">
+      <section className="container-page pb-12">
         <SectionHeader
           eyebrow={`${selectedSeason} Season`}
           title="Stat Snapshot"
@@ -937,7 +937,7 @@ export default async function PlayerPage({
 
       <section
         id="performance"
-        className="mx-auto max-w-[1440px] px-5 pb-12 md:px-8"
+        className="container-page pb-12"
       >
         <SectionHeader eyebrow="Performance" title="At A Glance" />
 
@@ -1060,7 +1060,7 @@ export default async function PlayerPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1440px] px-5 pb-12 md:px-8">
+      <section className="container-page pb-12">
         <SectionHeader eyebrow="Advanced Data" title="Statcast" accent="teal" />
 
         <div className="mt-6 overflow-hidden bg-[#101A2C] text-white">
@@ -1142,7 +1142,7 @@ export default async function PlayerPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1440px] px-5 pb-12 md:px-8">
+      <section className="container-page pb-12">
         <div className="border border-[#1A2842]/15 bg-[#1A2842] p-6 text-white md:flex md:items-center md:justify-between md:px-8">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#59B3AD]">
@@ -1182,7 +1182,7 @@ export default async function PlayerPage({
 
       <section
         id="career"
-        className="mx-auto max-w-[1440px] px-5 pb-20 md:px-8"
+        className="container-page pb-20"
       >
         <SectionHeader eyebrow="Career" title="Season History" accent="teal" />
 

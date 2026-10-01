@@ -645,7 +645,7 @@ export default function LeadersPage() {
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
       <header className="border-b border-[#1A2842]/15">
-        <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
+        <div className="container-page py-10 md:py-14">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div>
               <div className="flex items-center gap-3">
@@ -685,7 +685,7 @@ export default function LeadersPage() {
       </header>
 
       <section className="border-b border-[#1A2842]/15 bg-[#FCF9F3]">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-5 px-5 py-5 md:px-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="container-page flex flex-col gap-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div
             className="inline-flex border-b border-[#1A2842]/20"
             role="group"
@@ -746,7 +746,7 @@ export default function LeadersPage() {
       {error && (
         <div
           role="alert"
-          className="mx-auto mt-8 max-w-[1440px] px-5 md:px-8"
+          className="container-page mt-8"
         >
           <div className="border border-[#D85F46]/30 bg-[#D85F46]/5 px-6 py-5 text-sm font-medium text-[#A84432]">
             {error}
@@ -754,7 +754,7 @@ export default function LeadersPage() {
         </div>
       )}
 
-      <section className="mx-auto max-w-[1440px] px-5 py-10 md:px-8">
+      <section className="container-page py-10">
         <div className="mb-5 flex items-end justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#D85F46]">
@@ -844,7 +844,7 @@ export default function LeadersPage() {
         )}
       </section>
 
-      <section className="mx-auto max-w-[1440px] px-5 pb-14 md:px-8">
+      <section className="container-page pb-14">
         <div className="mb-5 flex items-end justify-between border-b border-[#1A2842]/15 pb-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#D85F46]">
@@ -883,7 +883,7 @@ export default function LeadersPage() {
       </section>
 
       <section className="border-t border-[#1A2842]/15 bg-[#FCF9F3]">
-        <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-10 md:grid-cols-3 md:px-8">
+        <div className="container-page grid gap-8 py-10 md:grid-cols-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#D85F46]">
               Hitting
@@ -923,7 +923,7 @@ export default function LeadersPage() {
       </section>
 
       <footer className="border-t border-[#101A2C] bg-[#1A2842] px-5 py-12 text-[#F8F3EA] md:px-8">
-        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-8 md:flex-row md:items-end">
+        <div className="container-wide flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#59B3AD]">
               Offshore Break

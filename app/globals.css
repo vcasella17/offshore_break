@@ -38,6 +38,12 @@ body {
   padding-inline: clamp(1.5rem, 3vw, 4rem);
 }
 
+.container-wide {
+  width: 100%;
+  max-width: 100rem;
+  margin-inline: auto;
+}
+
 a {
   text-decoration: none;
 }

@@ -543,7 +543,7 @@ export default function PlayersPage() {
       {/* ========================================================= */}
 
       <section className="border-b border-[#1A2842]/15">
-        <div className="mx-auto max-w-[1440px] px-5 py-12 md:px-8 md:py-16">
+        <div className="container-page py-12 md:py-16">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#D85F46]">
@@ -590,7 +590,7 @@ export default function PlayersPage() {
       {/* ========================================================= */}
 
       <section className="border-b border-[#1A2842]/15 bg-[#FCF9F3]">
-        <div className="mx-auto max-w-[1440px] px-5 py-6 md:px-8">
+        <div className="container-page py-6">
           {/* View switcher */}
 
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -803,7 +803,7 @@ export default function PlayersPage() {
         team !== "All" ||
         showQualifiedOnly) && (
         <section className="border-b border-[#1A2842]/10 bg-[#F8F3EA]">
-          <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-2 px-5 py-3 md:px-8">
+          <div className="container-page flex flex-wrap items-center gap-2 py-3">
             <span className="mr-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
               Filters
             </span>
@@ -839,7 +839,7 @@ export default function PlayersPage() {
       {/* PLAYER TABLE */}
       {/* ========================================================= */}
 
-      <section className="mx-auto max-w-[1440px] px-5 py-8 md:px-8">
+      <section className="container-page py-8">
         <div className="mb-5 flex items-end justify-between">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#D85F46]">
@@ -1334,7 +1334,7 @@ export default function PlayersPage() {
       {/* ========================================================= */}
 
       <section className="mt-8 border-t border-[#101A2C] bg-[#1A2842] px-5 py-14 text-[#F8F3EA] md:px-8">
-        <div className="mx-auto max-w-[1440px]">
+        <div className="container-wide ">
           <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#59B3AD]">

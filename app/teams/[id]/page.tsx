@@ -384,7 +384,7 @@ export default async function TeamPage({
       {/* ====================================================== */}
 
       <section className="border-b border-[#1A2842]/15">
-        <div className="mx-auto max-w-[1440px] px-6 py-12 md:px-10 md:py-16">
+        <div className="container-page py-12 md:py-16">
           <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
             {/* TEAM IDENTITY */}
 
@@ -478,7 +478,7 @@ export default async function TeamPage({
       {/* ====================================================== */}
 
       <div className="border-b border-[#1A2842]/15 bg-[#101A2C] text-white">
-        <div className="mx-auto flex max-w-[1440px] overflow-x-auto px-5 md:px-10">
+        <div className="container-page flex overflow-x-auto">
           <a
             href="#roster"
             className="border-b-2 border-[#D85F46] px-5 py-4 text-[9px] font-black uppercase tracking-[0.18em]"
@@ -508,7 +508,7 @@ export default async function TeamPage({
 
       <section
         id="roster"
-        className="mx-auto max-w-[1440px] px-6 py-12 md:px-10 md:py-16"
+        className="container-page py-12 md:py-16"
       >
         <div className="flex items-end justify-between border-b border-[#1A2842]/20 pb-4">
           <div>
@@ -734,7 +734,7 @@ export default async function TeamPage({
 
       <section
         id="snapshot"
-        className="mx-auto max-w-[1440px] px-6 pb-16 md:px-10"
+        className="container-page pb-16"
       >
         <div className="mb-6 border-b border-[#1A2842]/20 pb-4">
           <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#59B3AD]">
@@ -929,7 +929,7 @@ export default async function TeamPage({
       {/* ====================================================== */}
 
       <section className="border-t border-[#1A2842]/15 bg-[#1A2842] text-white">
-        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-8 px-6 py-12 md:flex-row md:items-center md:px-10">
+        <div className="container-page flex flex-col justify-between gap-8 py-12 md:flex-row md:items-center">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#59B3AD]">
               Offshore Break

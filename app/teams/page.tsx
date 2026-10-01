@@ -479,7 +479,7 @@ export default async function TeamsPage() {
     return (
       <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
         <section className="border-b border-[#1A2842]/15">
-          <div className="mx-auto flex max-w-[1440px] items-end justify-between gap-8 px-5 py-11 md:px-8 md:py-14">
+          <div className="container-page flex items-end justify-between gap-8 py-11 md:py-14">
             <div>
               <div className="flex items-center gap-3">
                 <span className="h-[2px] w-8 bg-[#D85F46]" />
@@ -507,7 +507,7 @@ export default async function TeamsPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
+        <section className="container-page py-10 md:py-14">
           <div className="mb-10 flex items-center justify-between border-b border-[#1A2842]/15 pb-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D85F46]">

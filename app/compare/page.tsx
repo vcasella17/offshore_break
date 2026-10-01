@@ -468,7 +468,7 @@ export default async function ComparePage({
     <main className="min-h-screen bg-[#F8F3EA]">
       {/* HERO */}
       <section className="paper-grid border-b border-[#1A2842]/15">
-        <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-12 md:px-8 md:pb-16 md:pt-16">
+        <div className="container-page pb-12 pt-12 md:pb-16 md:pt-16">
           <div className="mb-5 flex items-center gap-3">
             <span className="h-[2px] w-10 bg-[#D85F46]" />
 
@@ -505,7 +505,7 @@ export default async function ComparePage({
       </section>
 
       {/* PLAYER SELECTORS */}
-      <section className="mx-auto max-w-[1440px] px-5 py-8 md:px-8 md:py-10">
+      <section className="container-page py-8 md:py-10">
         <form
           action="/compare"
           method="GET"
@@ -575,7 +575,7 @@ export default async function ComparePage({
       </section>
 
       {!hasComparison ? (
-        <section className="mx-auto max-w-[1440px] px-5 pb-20 md:px-8">
+        <section className="container-page pb-20">
           <div className="border border-dashed border-[#1A2842]/20 bg-white px-6 py-20 text-center">
             <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
               Data Desk Ready
@@ -594,7 +594,7 @@ export default async function ComparePage({
       ) : (
         <>
           {/* PLAYER HEADERS */}
-          <section className="mx-auto max-w-[1440px] px-5 pb-10 md:px-8">
+          <section className="container-page pb-10">
             <div className="grid overflow-hidden border border-[#1A2842]/15 bg-white md:grid-cols-2">
               <Link
                 href={`/players/${profile1.player.id}`}
@@ -673,7 +673,7 @@ export default async function ComparePage({
           </section>
 
           {/* OFFENSE COMPARISON */}
-          <section className="mx-auto max-w-[1440px] px-5 pb-16 md:px-8">
+          <section className="container-page pb-16">
             <div className="mb-6">
               <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
                 01 / Offense
@@ -743,7 +743,7 @@ export default async function ComparePage({
 
           {/* PROFILE */}
           <section className="bg-[#101A2C]">
-            <div className="mx-auto max-w-[1440px] px-5 py-14 md:px-8 md:py-20">
+            <div className="container-page py-14 md:py-20">
               <div className="mb-10">
                 <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
                   02 / Offshore Profile
@@ -817,7 +817,7 @@ export default async function ComparePage({
 
           {/* PITCHING */}
           {isBothPitchers && (
-            <section className="mx-auto max-w-[1440px] px-5 py-16 md:px-8">
+            <section className="container-page py-16">
               <div className="mb-6">
                 <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#D85F46]">
                   03 / Pitching
@@ -880,7 +880,7 @@ export default async function ComparePage({
 
           {/* SEASON SNAPSHOT */}
           <section className="border-t border-[#1A2842]/15 bg-[#EEE7DC]">
-            <div className="mx-auto max-w-[1440px] px-5 py-12 md:px-8">
+            <div className="container-page py-12">
               <div className="grid gap-8 md:grid-cols-2">
                 <div>
                   <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-[#D85F46]">

@@ -410,7 +410,7 @@ export default async function GamesPage() {
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
       <section className="border-b border-[#1A2842]/15">
-        <div className="mx-auto max-w-[1440px] px-5 py-11 md:px-8 md:py-14">
+        <div className="container-page py-11 md:py-14">
           <div className="flex items-center gap-3">
             <span className="h-[2px] w-8 bg-[#D85F46]" />
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#687384]">
@@ -434,7 +434,7 @@ export default async function GamesPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-14">
+      <div className="container-page py-10 md:py-14">
         <section aria-labelledby="today-heading">
           <div className="mb-6 flex items-end justify-between gap-4 border-b border-[#1A2842]/15 pb-4">
             <div>

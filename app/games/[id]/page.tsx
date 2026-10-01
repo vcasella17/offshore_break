@@ -1131,7 +1131,7 @@ export default async function GamePage({
   return (
     <main className="min-h-screen bg-[#F8F3EA]">
       {/* Top navigation */}
-      <div className="mx-auto max-w-7xl px-6 pt-7 md:px-10">
+      <div className="container-page pt-7">
         <Link
           href="/games"
           className="text-sm font-semibold text-[#59A7A2] transition hover:text-[#D85F46]"
@@ -1141,7 +1141,7 @@ export default async function GamePage({
       </div>
 
       {/* Game Header */}
-      <section className="mx-auto max-w-7xl px-6 pb-10 pt-7 md:px-10 md:pt-10">
+      <section className="container-page pb-10 pt-7 md:pt-10">
         <div className="overflow-hidden rounded-3xl border border-[#DED7CC] bg-white">
           {/* Status strip */}
           <div className="flex flex-col gap-3 border-b border-[#E8E1D7] bg-[#F4EEE5] px-6 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
@@ -1218,7 +1218,7 @@ export default async function GamePage({
       </section>
 
       {/* Game Information */}
-      <div className="mx-auto max-w-7xl space-y-12 px-6 pb-16 md:px-10">
+      <div className="container-page space-y-12 pb-16">
         {/* Line Score */}
         {linescore && (
           <LineScore
