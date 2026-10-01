@@ -24,34 +24,29 @@ function NavBar() {
     <header className="sticky top-0 z-50 border-b border-[#1A2842]/15 bg-[#F8F3EA]/95 backdrop-blur-md">
       <nav
         aria-label="Main navigation"
-        className="mx-auto flex h-[70px] max-w-[1440px] items-center justify-between px-5 md:px-8"
+        className="container-page flex h-[5.125rem] items-center justify-between"
       >
         <Link
           href="/"
           aria-label="Offshore Break home"
           className="group flex shrink-0 items-center gap-3 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D85F46]"
         >
-          <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden border border-[#1A2842]/20 bg-[#1A2842]">
+          <span className="relative block h-[3.25rem] w-[4.375rem] shrink-0 overflow-hidden">
             <Image
               src="/logo.png"
               alt=""
-              width={32}
-              height={32}
+              width={1412}
+              height={956}
               priority
-              className="relative z-10 object-contain"
-            />
-            <span
-              aria-hidden="true"
-              className="absolute bottom-0 left-0 h-[3px] w-full bg-[#D85F46] transition-colors group-hover:bg-[#59B3AD]"
+              className="absolute left-[-1.27rem] top-[-0.1rem] h-auto w-[7.06rem] max-w-none"
             />
           </span>
 
           <span className="leading-none">
-            <span className="block text-[17px] font-black tracking-[-0.055em] text-[#1A2842] sm:text-[19px]">
-              OFFSHORE{" "}
-              <span className="text-[#D85F46]">BREAK</span>
+            <span className="block text-[1.3rem] font-black tracking-[-0.055em] text-[#1A2842] sm:text-[1.45rem]">
+              OFFSHORE <span className="text-[#D85F46]">BREAK</span>
             </span>
-            <span className="mt-1.5 block text-[8px] font-semibold uppercase tracking-[0.2em] text-[#687384]">
+            <span className="mt-1.5 block text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#687384]">
               Baseball, by the numbers
             </span>
           </span>
@@ -64,7 +59,7 @@ function NavBar() {
               href={item.href}
               className="group relative flex h-full items-center px-4 text-[#1A2842] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#D85F46] lg:px-5"
             >
-              <span className="text-[11px] font-semibold transition-colors group-hover:text-[#D85F46]">
+              <span className="text-base font-semibold transition-colors group-hover:text-[#D85F46]">
                 {item.label}
               </span>
               <span
@@ -77,7 +72,7 @@ function NavBar() {
 
         <Link
           href="/players"
-          className="hidden h-9 items-center border border-[#1A2842] px-4 text-[10px] font-semibold text-[#1A2842] transition hover:border-[#D85F46] hover:bg-[#D85F46] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D85F46] sm:flex"
+          className="hidden h-11 items-center border border-[#1A2842] px-5 text-sm font-semibold text-[#1A2842] transition hover:border-[#D85F46] hover:bg-[#D85F46] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D85F46] sm:flex"
         >
           Browse players
           <span aria-hidden="true" className="ml-2">
@@ -95,7 +90,7 @@ function NavBar() {
             <Link
               key={item.href}
               href={item.href}
-              className="shrink-0 px-4 py-3 text-xs font-medium text-[#687384] transition hover:text-[#D85F46] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#D85F46]"
+              className="shrink-0 px-4 py-3 text-sm font-medium text-[#687384] transition hover:text-[#D85F46] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#D85F46]"
             >
               {item.label}
             </Link>
@@ -109,27 +104,30 @@ function NavBar() {
 function SiteFooter() {
   return (
     <footer className="border-t border-[#101A2C] bg-[#1A2842] text-[#F8F3EA]">
-      <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-12">
+      <div className="container-page py-12 md:py-14">
         <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div>
             <Link
               href="/"
-              className="inline-block rounded-sm text-lg font-black tracking-[-0.04em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#59B3AD]"
+              className="inline-block rounded-sm text-xl font-black tracking-[-0.04em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#59B3AD]"
             >
               OFFSHORE <span className="text-[#D85F46]">BREAK</span>
             </Link>
 
-            <p className="mt-2 max-w-sm text-sm leading-6 text-white/55">
+            <p className="mt-3 max-w-sm text-base leading-7 text-white/60">
               A closer look at the players, clubs, and numbers behind the game.
             </p>
           </div>
 
-          <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-5 gap-y-2">
+          <nav
+            aria-label="Footer navigation"
+            className="flex flex-wrap gap-x-6 gap-y-3"
+          >
             {navigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm text-white/60 transition hover:text-[#F8F3EA] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#59B3AD]"
+                className="text-sm text-white/65 transition hover:text-[#F8F3EA] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#59B3AD]"
               >
                 {item.label}
               </Link>
@@ -137,12 +135,12 @@ function SiteFooter() {
           </nav>
         </div>
 
-        <div className="mt-8 flex flex-col justify-between gap-3 border-t border-white/15 pt-5 sm:flex-row sm:items-center">
-          <p className="text-xs text-white/40">
+        <div className="mt-9 flex flex-col justify-between gap-3 border-t border-white/15 pt-6 sm:flex-row sm:items-center">
+          <p className="text-sm text-white/45">
             Baseball stats, told as stories.
           </p>
 
-          <p className="font-mono text-[10px] text-white/35">
+          <p className="font-mono text-xs text-white/40">
             © {new Date().getFullYear()} Offshore Break
           </p>
         </div>

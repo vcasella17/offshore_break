@@ -16,13 +16,26 @@
 html {
   scroll-behavior: smooth;
   background: var(--offshore-paper);
+  /* Scales every rem value (Tailwind text-*, p-*, h-*, etc.) with screen width.
+     ~16px at 1000px, ~17px at 1440px, ~20px at 1920px, ~23px at 2560px */
+  font-size: clamp(16px, 0.55vw + 9px, 24px);
 }
 
 body {
   margin: 0;
   background: var(--offshore-paper);
   color: var(--offshore-navy);
+  /* removed hard-coded 16px so body inherits the scaled root size */
+  line-height: 1.6;
   text-rendering: optimizeLegibility;
+}
+
+/* One shared page container: use in the header, hero, every section, and the footer */
+.container-page {
+  width: 100%;
+  max-width: 100rem; /* 1600px at base size, grows as the root font grows */
+  margin-inline: auto;
+  padding-inline: clamp(1.5rem, 3vw, 4rem);
 }
 
 a {
@@ -54,9 +67,7 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-/* =========================================================
-   GLOBAL SCROLLBAR
-   ========================================================= */
+/* Global scrollbar */
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -75,9 +86,7 @@ a {
   background: var(--offshore-navy);
 }
 
-/* =========================================================
-   OFFSHORE BREAK INTERACTION SYSTEM
-   ========================================================= */
+/* Offshore Break interaction system */
 
 .explore-card {
   position: relative;
@@ -90,9 +99,9 @@ a {
   content: "";
   position: absolute;
   inset: 0;
-  pointer-events: none;
   z-index: 0;
   border: 1px solid transparent;
+  pointer-events: none;
   transition: border-color 400ms ease;
 }
 
@@ -104,10 +113,10 @@ a {
   position: absolute;
   top: 0;
   left: -45%;
+  z-index: 1;
   width: 30%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
   transform: skewX(-18deg);
   background: linear-gradient(
     90deg,
@@ -129,8 +138,8 @@ a {
 .explore-grid {
   position: absolute;
   inset: 0;
-  pointer-events: none;
   z-index: 1;
+  pointer-events: none;
   opacity: 0;
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
@@ -221,9 +230,7 @@ a {
   transform: translateX(-2px);
 }
 
-/* =========================================================
-   COMPARE BANNER
-   ========================================================= */
+/* Compare banner */
 
 .explore-compare {
   isolation: isolate;
@@ -234,9 +241,9 @@ a {
   position: absolute;
   top: -50%;
   left: -25%;
+  z-index: 1;
   width: 20%;
   height: 200%;
-  z-index: 1;
   pointer-events: none;
   transform: rotate(18deg);
   background: linear-gradient(
@@ -292,9 +299,7 @@ a {
   height: 40px;
 }
 
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
+/* Reduced motion */
 
 @media (prefers-reduced-motion: reduce) {
   html {
