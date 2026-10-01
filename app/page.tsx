@@ -908,48 +908,68 @@ export default async function HomePage() {
             <Link
               key={item.number}
               href={item.href}
-              className="group bg-[#F8F3EA] p-7 transition hover:bg-[#1A2842] hover:text-white md:p-9"
+              className="explore-card group relative min-h-[265px] overflow-hidden bg-[#F8F3EA] p-7 text-[#1A2842] transition-all duration-500 ease-out hover:-translate-y-[2px] hover:bg-[#1A2842] hover:text-white active:scale-[0.99] md:p-9"
             >
-              <div className="flex items-start justify-between">
-                <span className="font-mono text-[9px] font-black text-[#D85F46]">
+              <span aria-hidden="true" className="explore-scan" />
+              <span aria-hidden="true" className="explore-grid" />
+              <span aria-hidden="true" className="explore-accent" />
+
+              <div className="relative z-10 flex items-start justify-between">
+                <span className="explore-number font-mono text-[9px] font-black text-[#D85F46]">
                   {item.number}
                 </span>
-                <span className="text-lg transition-transform group-hover:translate-x-1">
+
+                <span className="explore-arrow text-lg text-[#1A2842] transition-all duration-500 group-hover:translate-x-2 group-hover:text-white">
                   →
                 </span>
               </div>
 
-              <h3 className="mt-12 text-3xl font-black tracking-[-0.04em]">
-                {item.title}
-              </h3>
+              <div className="relative z-10 mt-20">
+                <h3 className="explore-title text-3xl font-black tracking-[-0.04em] transition-all duration-500 group-hover:translate-x-2 md:text-4xl">
+                  {item.title}
+                </h3>
 
-              <p className="mt-3 max-w-md text-xs leading-6 text-[#1A2842]/45 group-hover:text-white/40">
-                {item.description}
-              </p>
+                <p className="explore-description mt-4 max-w-md text-xs leading-6 text-[#1A2842]/45 transition-all duration-500 group-hover:translate-x-2 group-hover:text-white/55">
+                  {item.description}
+                </p>
+              </div>
+
+              <span aria-hidden="true" className="explore-corner" />
+
+              <span className="explore-status absolute bottom-7 right-7 z-10 font-mono text-[7px] font-black uppercase tracking-[0.2em] text-white/0 transition-all duration-300 group-hover:text-white/30">
+                Open database →
+              </span>
             </Link>
           ))}
         </div>
 
         <Link
           href="/compare"
-          className="mt-px block bg-[#D85F46] p-7 text-white transition hover:bg-[#59B3AD] md:p-9"
+          className="explore-compare group relative mt-px block overflow-hidden bg-[#D85F46] p-7 text-[#1A2842] transition-all duration-500 hover:bg-[#D85F46] hover:text-[#1A2842] active:scale-[0.995] md:p-9"
         >
-          <div className="flex items-end justify-between gap-6">
+          <span aria-hidden="true" className="compare-scan" />
+          <span aria-hidden="true" className="compare-grid" />
+
+          <div className="relative z-10 flex items-end justify-between gap-6">
             <div>
-              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/60">
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/65">
                 Head To Head
               </p>
-              <h3 className="mt-2 text-3xl font-black tracking-[-0.04em]">
+              <h3 className="mt-2 text-3xl font-black tracking-[-0.04em] transition-transform duration-500 group-hover:translate-x-2">
                 Compare Players
               </h3>
-              <p className="mt-3 max-w-xl text-xs leading-6 text-white/60">
+              <p className="mt-3 max-w-xl text-xs leading-6 text-white/65 transition-colors duration-300 group-hover:text-white/80">
                 Put two players side by side and see how their numbers stack
                 up across the Offshore Break data set.
               </p>
             </div>
 
-            <span className="shrink-0 text-2xl">→</span>
+            <span className="shrink-0 text-2xl transition-transform duration-500 group-hover:translate-x-3">
+              →
+            </span>
           </div>
+
+          <span aria-hidden="true" className="compare-corner" />
         </Link>
       </section>
     </main>

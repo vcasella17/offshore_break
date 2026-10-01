@@ -1,27 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
-
 @import "tailwindcss";
 
 :root {
-  --background: #f8f3ea;
-  --foreground: #1a2842;
-
-  --navy: #1a2842;
-  --navy-deep: #101a2c;
-  --navy-dark: #0b1423;
-
-  --cream: #f8f3ea;
-  --cream-light: #fcf9f3;
-  --white: #ffffff;
-
-  --coral: #d85f46;
-  --teal: #59b3ad;
-
-  --muted: #77736c;
-  --muted-light: #a29d94;
-
-  --border: rgba(26, 40, 66, 0.14);
-  --border-light: rgba(26, 40, 66, 0.08);
+  --offshore-paper: #f8f3ea;
+  --offshore-navy: #1a2842;
+  --offshore-dark: #101a2c;
+  --offshore-coral: #d85f46;
+  --offshore-teal: #59b3ad;
+  --offshore-muted: #687384;
 }
 
 * {
@@ -30,322 +15,47 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--offshore-paper);
 }
 
 body {
   margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "IBM Plex Sans", sans-serif;
-  font-feature-settings: "kern", "liga";
-  -webkit-font-smoothing: antialiased;
+  background: var(--offshore-paper);
+  color: var(--offshore-navy);
+  text-rendering: optimizeLegibility;
 }
 
 a {
-  color: inherit;
   text-decoration: none;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+::selection {
+  background: var(--offshore-coral);
+  color: white;
 }
-
-/* =========================================================
-   TYPOGRAPHY
-   ========================================================= */
-
-.font-mono,
-code,
-pre {
-  font-family: "IBM Plex Mono", monospace;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: "IBM Plex Sans", sans-serif;
-  letter-spacing: -0.025em;
-}
-
-/* =========================================================
-   GLOBAL LAYOUT
-   ========================================================= */
-
-.site-shell {
-  min-height: 100vh;
-  background: var(--cream);
-}
-
-.content-width {
-  width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding-left: 32px;
-  padding-right: 32px;
-}
-
-@media (max-width: 768px) {
-  .content-width {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-}
-
-/* =========================================================
-   PAPER / BASEBALL DATA TEXTURE
-   ========================================================= */
 
 .paper-grid {
   background-image:
-    linear-gradient(
-      to right,
-      rgba(26, 40, 66, 0.035) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      rgba(26, 40, 66, 0.025) 1px,
-      transparent 1px
-    );
+    linear-gradient(rgba(26, 40, 66, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 40, 66, 0.035) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
-/* =========================================================
-   SECTION HEADERS
-   ========================================================= */
-
-.section-eyebrow {
-  color: var(--teal);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.section-title {
-  margin-top: 6px;
-  color: var(--navy);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.035em;
-}
-
-.section-rule {
-  height: 1px;
-  width: 100%;
-  margin-top: 14px;
-  background: var(--border);
-}
-
-/* =========================================================
-   DATA LABELS
-   ========================================================= */
-
-.data-label {
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.data-number {
-  font-family: "IBM Plex Mono", monospace;
-  font-weight: 600;
-  letter-spacing: -0.04em;
+.analytics-number {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
   font-variant-numeric: tabular-nums;
 }
 
 /* =========================================================
-   DATA TABLES
-   ========================================================= */
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  color: var(--muted);
-  font-family: "IBM Plex Sans", sans-serif;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  line-height: 1;
-  text-align: left;
-  text-transform: uppercase;
-}
-
-.data-table td {
-  padding: 13px 14px;
-  border-bottom: 1px solid var(--border-light);
-  color: var(--navy);
-  font-size: 12px;
-}
-
-.data-table td.stat {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.data-table tbody tr {
-  transition:
-    background-color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.data-table tbody tr:hover {
-  background: rgba(26, 40, 66, 0.035);
-}
-
-/* =========================================================
-   GLOBAL PANELS
-   ========================================================= */
-
-.ob-panel {
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.ob-panel-solid {
-  border: 1px solid var(--border);
-  background: var(--white);
-}
-
-.ob-panel-dark {
-  background: var(--navy-deep);
-  color: white;
-}
-
-/* =========================================================
-   STAT BLOCKS
-   ========================================================= */
-
-.stat-block {
-  min-width: 0;
-  padding: 18px;
-  border-right: 1px solid var(--border);
-}
-
-.stat-block:last-child {
-  border-right: 0;
-}
-
-.stat-block-label {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.stat-block-value {
-  color: var(--navy);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 25px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.06em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* =========================================================
-   LINKS
-   ========================================================= */
-
-.ob-link {
-  transition:
-    color 140ms ease,
-    opacity 140ms ease;
-}
-
-.ob-link:hover {
-  color: var(--coral);
-}
-
-/* =========================================================
-   BUTTONS
-   ========================================================= */
-
-.ob-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0 16px;
-  border: 1px solid var(--navy);
-  background: var(--navy);
-  color: white;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    transform 140ms ease;
-}
-
-.ob-button:hover {
-  border-color: var(--coral);
-  background: var(--coral);
-}
-
-.ob-button-secondary {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--navy);
-}
-
-.ob-button-secondary:hover {
-  border-color: var(--navy);
-  background: var(--navy);
-  color: white;
-}
-
-/* =========================================================
-   ACCENTS
-   ========================================================= */
-
-.accent-coral {
-  color: var(--coral);
-}
-
-.accent-teal {
-  color: var(--teal);
-}
-
-.bg-coral {
-  background: var(--coral);
-}
-
-.bg-teal {
-  background: var(--teal);
-}
-
-.bg-navy {
-  background: var(--navy);
-}
-
-.bg-navy-deep {
-  background: var(--navy-deep);
-}
-
-/* =========================================================
-   SCROLLBARS
+   GLOBAL SCROLLBAR
    ========================================================= */
 
 ::-webkit-scrollbar {
@@ -354,71 +64,249 @@ h6 {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--cream);
+  background: #eee7dc;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(26, 40, 66, 0.25);
+  background: #aaa69d;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--navy);
+  background: var(--offshore-navy);
 }
 
 /* =========================================================
-   SELECTION
+   OFFSHORE BREAK INTERACTION SYSTEM
    ========================================================= */
 
-::selection {
-  background: var(--coral);
-  color: white;
+.explore-card {
+  position: relative;
+  isolation: isolate;
+  cursor: pointer;
+  will-change: transform;
 }
 
-/* =========================================================
-   MOBILE TABLES
-   ========================================================= */
+.explore-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  border: 1px solid transparent;
+  transition: border-color 400ms ease;
+}
 
-.table-scroll {
+.explore-card:hover::after {
+  border-color: rgba(89, 179, 173, 0.22);
+}
+
+.explore-scan {
+  position: absolute;
+  top: 0;
+  left: -45%;
+  width: 30%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  transform: skewX(-18deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(89, 179, 173, 0.1),
+    transparent
+  );
+  opacity: 0;
+  transition:
+    left 750ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 300ms ease;
+}
+
+.explore-card:hover .explore-scan {
+  left: 125%;
+  opacity: 1;
+}
+
+.explore-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+  transition: opacity 450ms ease;
+}
+
+.explore-card:hover .explore-grid {
+  opacity: 1;
+}
+
+.explore-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 0;
+  height: 3px;
+  background: var(--offshore-coral);
+  transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.explore-card:hover .explore-accent {
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
-.table-scroll::-webkit-scrollbar {
-  height: 5px;
+.explore-number {
+  transition:
+    transform 350ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 300ms ease;
+}
+
+.explore-card:hover .explore-number {
+  transform: translateX(4px);
+}
+
+.explore-title {
+  transition:
+    color 300ms ease,
+    transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.explore-card:hover .explore-title {
+  color: #ffffff;
+}
+
+.explore-description {
+  transition:
+    color 300ms ease,
+    transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.explore-arrow {
+  transition:
+    color 250ms ease,
+    transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.explore-corner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 18px;
+  height: 18px;
+  border-right: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    width 350ms ease,
+    height 350ms ease,
+    border-color 300ms ease;
+}
+
+.explore-card:hover .explore-corner {
+  width: 34px;
+  height: 34px;
+  border-color: var(--offshore-coral);
+}
+
+.explore-status {
+  transition:
+    color 300ms ease,
+    transform 400ms ease;
+}
+
+.explore-card:hover .explore-status {
+  transform: translateX(-2px);
 }
 
 /* =========================================================
-   FOCUS
+   COMPARE BANNER
    ========================================================= */
 
-:focus-visible {
-  outline: 2px solid var(--coral);
-  outline-offset: 2px;
+.explore-compare {
+  isolation: isolate;
+  cursor: pointer;
+}
+
+.compare-scan {
+  position: absolute;
+  top: -50%;
+  left: -25%;
+  width: 20%;
+  height: 200%;
+  z-index: 1;
+  pointer-events: none;
+  transform: rotate(18deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.14),
+    transparent
+  );
+  opacity: 0;
+  transition:
+    left 800ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 250ms ease;
+}
+
+.explore-compare:hover .compare-scan {
+  left: 115%;
+  opacity: 1;
+}
+
+.compare-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+  transition: opacity 400ms ease;
+}
+
+.explore-compare:hover .compare-grid {
+  opacity: 1;
+}
+
+.compare-corner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 20px;
+  height: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  transition:
+    width 350ms ease,
+    height 350ms ease;
+}
+
+.explore-compare:hover .compare-corner {
+  width: 40px;
+  height: 40px;
 }
 
 /* =========================================================
-   RESPONSIVE
+   REDUCED MOTION
    ========================================================= */
 
-@media (max-width: 768px) {
-  .section-title {
-    font-size: 21px;
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 
-  .stat-block {
-    padding: 14px;
-  }
-
-  .stat-block-value {
-    font-size: 21px;
-  }
-
-  .data-table th {
-    padding: 9px 10px;
-  }
-
-  .data-table td {
-    padding: 11px 10px;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
