@@ -1,259 +1,43 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { getTeamColors, teamLogo } from "@/lib/baseball";
+
+/* ───────────────────────── Types ───────────────────────── */
 
 type MlbTeam = {
   id: number;
   name: string;
   abbreviation?: string;
-  league?: {
-    id: number;
-    name: string;
-  };
-  division?: {
-    id: number;
-    name: string;
-  };
+  league?: { id: number; name: string };
+  division?: { id: number; name: string };
 };
 
 type MlbTeamRecord = {
-  team: {
-    id: number;
-    name: string;
-  };
+  team: { id: number; name: string };
   wins: number;
   losses: number;
   winningPercentage?: string;
+  gamesBack?: string;
+  runDifferential?: number;
 };
 
 type MlbDivision = {
   division: {
     id: number;
     name: string;
-    league: {
-      id: number;
-      name: string;
-    };
+    league: { id: number; name: string };
   };
   teamRecords: MlbTeamRecord[];
 };
 
-type TeamColors = {
-  primary: string;
-  secondary: string;
-  accent: string;
-  hoverText: string;
-};
+/* ───────────────────────── Helpers ───────────────────────── */
 
-const TEAM_COLORS: Record<string, TeamColors> = {
-  "Arizona Diamondbacks": {
-    primary: "#A71930",
-    secondary: "#2A9D8F",
-    accent: "#E3D4AD",
-    hoverText: "#FFFFFF",
-  },
-  "Atlanta Braves": {
-    primary: "#CE1141",
-    secondary: "#13274F",
-    accent: "#EAAA00",
-    hoverText: "#FFFFFF",
-  },
-  "Baltimore Orioles": {
-    primary: "#DF4601",
-    secondary: "#000000",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Boston Red Sox": {
-    primary: "#BD3039",
-    secondary: "#0C2340",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Chicago Cubs": {
-    primary: "#0E3386",
-    secondary: "#CC3433",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Chicago White Sox": {
-    primary: "#27251F",
-    secondary: "#C4CED4",
-    accent: "#FFFFFF",
-    hoverText: "#1A2842",
-  },
-  "Cincinnati Reds": {
-    primary: "#C6011F",
-    secondary: "#000000",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Cleveland Guardians": {
-    primary: "#00385D",
-    secondary: "#E50022",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Colorado Rockies": {
-    primary: "#333366",
-    secondary: "#7663A8",
-    accent: "#C4CED4",
-    hoverText: "#FFFFFF",
-  },
-  "Detroit Tigers": {
-    primary: "#0C2340",
-    secondary: "#FA4616",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Houston Astros": {
-    primary: "#002D62",
-    secondary: "#EB6E1F",
-    accent: "#F4911E",
-    hoverText: "#FFFFFF",
-  },
-  "Kansas City Royals": {
-    primary: "#004687",
-    secondary: "#BD9B60",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Los Angeles Angels": {
-    primary: "#BA0021",
-    secondary: "#003263",
-    accent: "#862633",
-    hoverText: "#FFFFFF",
-  },
-  "Los Angeles Dodgers": {
-    primary: "#005A9C",
-    secondary: "#D6E7F5",
-    accent: "#EF3E42",
-    hoverText: "#1A2842",
-  },
-  "Miami Marlins": {
-    primary: "#00A3E0",
-    secondary: "#7CC7E8",
-    accent: "#EF3340",
-    hoverText: "#1A2842",
-  },
-  "Milwaukee Brewers": {
-    primary: "#12284B",
-    secondary: "#FFC52F",
-    accent: "#FFFFFF",
-    hoverText: "#1A2842",
-  },
-  "Minnesota Twins": {
-    primary: "#002B5C",
-    secondary: "#D31145",
-    accent: "#B9975B",
-    hoverText: "#FFFFFF",
-  },
-  "New York Mets": {
-    primary: "#002D72",
-    secondary: "#002D72",
-    accent: "#FF5910",
-    hoverText: "#FFFFFF",
-  },
-  "New York Yankees": {
-    primary: "#003087",
-    secondary: "#C4CED4",
-    accent: "#E4002B",
-    hoverText: "#1A2842",
-  },
-  Athletics: {
-    primary: "#003831",
-    secondary: "#EFB21E",
-    accent: "#FFFFFF",
-    hoverText: "#1A2842",
-  },
-  "Philadelphia Phillies": {
-    primary: "#E81828",
-    secondary: "#002D72",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Pittsburgh Pirates": {
-    primary: "#27251F",
-    secondary: "#FDB827",
-    accent: "#FFFFFF",
-    hoverText: "#1A2842",
-  },
-  "San Diego Padres": {
-    primary: "#2F241D",
-    secondary: "#FFC425",
-    accent: "#FFFFFF",
-    hoverText: "#1A2842",
-  },
-  "San Francisco Giants": {
-    primary: "#FD5A1E",
-    secondary: "#27251F",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Seattle Mariners": {
-    primary: "#0C2C56",
-    secondary: "#005C5C",
-    accent: "#C4CED4",
-    hoverText: "#FFFFFF",
-  },
-  "St. Louis Cardinals": {
-    primary: "#C41E3A",
-    secondary: "#0C2340",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-  "Tampa Bay Rays": {
-    primary: "#092C5C",
-    secondary: "#8FBCE6",
-    accent: "#F5D130",
-    hoverText: "#1A2842",
-  },
-  "Texas Rangers": {
-    primary: "#003278",
-    secondary: "#C9DDF2",
-    accent: "#C0111F",
-    hoverText: "#1A2842",
-  },
-  "Toronto Blue Jays": {
-    primary: "#134A8E",
-    secondary: "#1D2D5C",
-    accent: "#E8291C",
-    hoverText: "#FFFFFF",
-  },
-  "Washington Nationals": {
-    primary: "#AB0003",
-    secondary: "#14225A",
-    accent: "#FFFFFF",
-    hoverText: "#FFFFFF",
-  },
-};
-
-function getTeamColors(teamName: string): TeamColors {
-  return (
-    TEAM_COLORS[teamName] ?? {
-      primary: "#1A2842",
-      secondary: "#D85F46",
-      accent: "#FFFFFF",
-      hoverText: "#FFFFFF",
-    }
-  );
-}
-
-function getTeamLogoUrl(teamId: number) {
-  return `https://www.mlbstatic.com/team-logos/${teamId}.svg`;
-}
-
-function getRecord(
-  teamId: number,
-  records: Map<number, MlbTeamRecord>
-) {
+function getRecord(teamId: number, records: Map<number, MlbTeamRecord>) {
   const record = records.get(teamId);
-  return record ? `${record.wins}-${record.losses}` : "—";
+  return record ? `${record.wins}–${record.losses}` : "—";
 }
 
-function getWinningPercentage(
-  teamId: number,
-  records: Map<number, MlbTeamRecord>
-) {
+function getWinningPercentage(teamId: number, records: Map<number, MlbTeamRecord>) {
   const record = records.get(teamId);
   if (!record?.winningPercentage) return null;
 
@@ -263,16 +47,31 @@ function getWinningPercentage(
   return percentage.toFixed(3).replace(/^0/, "");
 }
 
+function getGamesBack(teamId: number, records: Map<number, MlbTeamRecord>) {
+  const gb = records.get(teamId)?.gamesBack;
+  if (!gb) return "—";
+  return gb === "-" ? "Lead" : gb;
+}
+
+function getRunDifferential(teamId: number, records: Map<number, MlbTeamRecord>) {
+  const rd = records.get(teamId)?.runDifferential;
+  if (rd == null) return "—";
+  return rd > 0 ? `+${rd}` : String(rd);
+}
+
+/* ───────────────────────── Components ───────────────────────── */
+
 function TeamCard({
   team,
-  record,
-  winningPercentage,
+  rank,
+  records,
 }: {
   team: MlbTeam;
-  record: string;
-  winningPercentage: string | null;
+  rank: number;
+  records: Map<number, MlbTeamRecord>;
 }) {
   const colors = getTeamColors(team.name);
+  const winningPercentage = getWinningPercentage(team.id, records);
 
   const teamStyle = {
     "--team-primary": colors.primary,
@@ -284,55 +83,72 @@ function TeamCard({
     <Link
       href={`/teams/${team.id}`}
       style={teamStyle}
-      className="group relative flex min-h-[136px] items-center justify-between overflow-hidden border-b border-[#1A2842]/15 bg-[#F8F3EA] px-5 py-5 transition-colors duration-200 hover:bg-[var(--team-secondary)] hover:text-[var(--team-hover-text)] focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46] sm:px-7"
+      className="group relative flex min-h-[8.5rem] items-center justify-between gap-4 overflow-hidden border-b border-[#1A2842]/15 bg-[#F8F3EA] px-5 py-5 transition-colors duration-200 hover:bg-[var(--team-secondary)] hover:text-[var(--team-hover-text)] focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46] sm:px-7"
     >
       <span
         aria-hidden="true"
         className="absolute bottom-0 left-0 top-0 w-[3px] origin-bottom scale-y-0 bg-[var(--team-primary)] transition-transform duration-200 group-hover:scale-y-100"
       />
 
-      <div className="flex min-w-0 items-center gap-4 sm:gap-6">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center sm:h-[68px] sm:w-[68px]">
+      <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+        <span className="w-5 shrink-0 font-mono text-sm font-bold text-[#1F7A74] transition-colors group-hover:text-[var(--team-hover-text)]">
+          {rank}
+        </span>
+
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center sm:h-[4.25rem] sm:w-[4.25rem]">
           <img
-            src={getTeamLogoUrl(team.id)}
+            src={teamLogo(team.id)}
             alt=""
             aria-hidden="true"
             loading="lazy"
-            className="h-12 w-12 object-contain transition-transform duration-200 group-hover:scale-105 sm:h-[60px] sm:w-[60px]"
+            className="h-12 w-12 object-contain transition-transform duration-200 group-hover:scale-105 sm:h-[3.75rem] sm:w-[3.75rem]"
           />
         </div>
 
         <div className="min-w-0">
-          <h3 className="truncate text-base font-bold tracking-tight sm:text-lg">
+          <h3 className="text-lg font-bold leading-tight tracking-tight">
             {team.name}
           </h3>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#687384] transition-colors group-hover:text-[var(--team-hover-text)]">
-            <span className="font-mono font-semibold">
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#687384] transition-colors group-hover:text-[var(--team-hover-text)]">
+            <span className="font-mono font-bold text-[#1F7A74] transition-colors group-hover:text-[var(--team-hover-text)]">
               {team.abbreviation ?? "MLB"}
             </span>
-            <span aria-hidden="true" className="opacity-50">
-              ·
-            </span>
-            <span className="font-mono">{record}</span>
+            <span aria-hidden="true" className="opacity-50">·</span>
+            <span className="font-mono">{getRecord(team.id, records)}</span>
             {winningPercentage && (
               <>
-                <span aria-hidden="true" className="opacity-50">
-                  ·
-                </span>
-                <span className="font-mono">. {winningPercentage}</span>
+                <span aria-hidden="true" className="opacity-50">·</span>
+                <span className="font-mono">{winningPercentage}</span>
               </>
             )}
           </div>
         </div>
       </div>
 
-      <span
-        aria-hidden="true"
-        className="ml-3 shrink-0 text-lg text-[#1A2842]/30 transition-all group-hover:translate-x-1 group-hover:text-[var(--team-hover-text)]"
-      >
-        →
-      </span>
+      <div className="flex shrink-0 items-center gap-4">
+        <div className="hidden gap-4 text-right sm:flex">
+          <div>
+            <p className="font-mono text-sm font-bold">{getGamesBack(team.id, records)}</p>
+            <p className="mt-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#1F7A74] transition-colors group-hover:text-[var(--team-hover-text)]">
+              GB
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-sm font-bold">{getRunDifferential(team.id, records)}</p>
+            <p className="mt-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#1F7A74] transition-colors group-hover:text-[var(--team-hover-text)]">
+              RD
+            </p>
+          </div>
+        </div>
+
+        <span
+          aria-hidden="true"
+          className="text-lg text-[#1A2842]/30 transition-all group-hover:translate-x-1 group-hover:text-[var(--team-hover-text)]"
+        >
+          →
+        </span>
+      </div>
     </Link>
   );
 }
@@ -352,12 +168,12 @@ function DivisionSection({
     <section aria-labelledby={`${leagueName}-${divisionName}`}>
       <div className="mb-3 flex items-center gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D85F46]">
+          <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
             {leagueName}
           </p>
           <h3
             id={`${leagueName}-${divisionName}`}
-            className="mt-1 text-xl font-bold tracking-tight"
+            className="mt-1 text-2xl font-black tracking-tight"
           >
             {divisionName}
           </h3>
@@ -365,19 +181,14 @@ function DivisionSection({
 
         <div className="mt-5 h-px flex-1 bg-[#1A2842]/15" />
 
-        <span className="mt-5 font-mono text-xs text-[#687384]">
-          {teams.length} clubs
+        <span className="mt-5 font-mono text-sm font-bold text-[#1F7A74]">
+          {teams.length} teams
         </span>
       </div>
 
       <div className="border-t border-[#1A2842]/15">
-        {teams.map((team) => (
-          <TeamCard
-            key={team.id}
-            team={team}
-            record={getRecord(team.id, records)}
-            winningPercentage={getWinningPercentage(team.id, records)}
-          />
+        {teams.map((team, index) => (
+          <TeamCard key={team.id} team={team} rank={index + 1} records={records} />
         ))}
       </div>
     </section>
@@ -386,21 +197,23 @@ function DivisionSection({
 
 function ErrorMessage({ message }: { message: string }) {
   return (
-    <main className="mx-auto min-h-[60vh] max-w-[900px] px-5 py-20">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#D85F46]">
+    <main className="container-page min-h-[60vh] py-20">
+      <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
         Teams directory
       </p>
-      <h1 className="mt-3 text-3xl font-bold tracking-tight">
+      <h1 className="mt-3 text-4xl font-black tracking-tight">
         We couldn’t load the teams.
       </h1>
-      <p className="mt-3 max-w-xl text-sm leading-6 text-[#687384]">
+      <p className="mt-3 max-w-xl text-base leading-7 text-[#687384]">
         The MLB stats service may be temporarily unavailable. Please try again
         in a little while.
       </p>
-      <p className="mt-4 text-xs text-[#687384]">{message}</p>
+      <p className="mt-4 text-sm text-[#687384]">{message}</p>
     </main>
   );
 }
+
+/* ───────────────────────── Page ───────────────────────── */
 
 export default async function TeamsPage() {
   const currentSeason = new Date().getFullYear();
@@ -457,10 +270,7 @@ export default async function TeamsPage() {
           const percentageA = Number(recordA.winningPercentage ?? 0);
           const percentageB = Number(recordB.winningPercentage ?? 0);
 
-          if (percentageA !== percentageB) {
-            return percentageB - percentageA;
-          }
-
+          if (percentageA !== percentageB) return percentageB - percentageA;
           return recordB.wins - recordA.wins;
         }
 
@@ -478,57 +288,57 @@ export default async function TeamsPage() {
 
     return (
       <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+        {/* HEADER */}
         <section className="border-b border-[#1A2842]/15">
           <div className="container-page flex items-end justify-between gap-8 py-11 md:py-14">
             <div>
               <div className="flex items-center gap-3">
                 <span className="h-[2px] w-8 bg-[#D85F46]" />
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#687384]">
+                <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
                   Around the league
                 </p>
               </div>
 
               <h1 className="mt-4 text-5xl font-black tracking-[-0.055em] md:text-7xl">
-                The clubs
+                The teams
               </h1>
 
-              <p className="mt-4 max-w-xl text-sm leading-6 text-[#687384]">
+              <p className="mt-4 max-w-xl text-base leading-7 text-[#687384]">
                 Records, rosters, and player pages for every Major League
-                club—all in one place.
+                team—all in one place.
               </p>
             </div>
 
             <div className="hidden border-l border-[#1A2842]/15 pl-6 text-right sm:block">
-              <p className="font-mono text-4xl font-bold">{mlbTeams.length}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[#687384]">
-                Major League clubs
+              <p className="font-mono text-5xl font-bold">{mlbTeams.length}</p>
+              <p className="mt-1 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#1F7A74]">
+                Major League Teams
               </p>
             </div>
           </div>
         </section>
 
+        {/* DIRECTORY */}
         <section className="container-page py-10 md:py-14">
           <div className="mb-10 flex items-center justify-between border-b border-[#1A2842]/15 pb-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#D85F46]">
+              <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
                 {currentSeason} season
               </p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight">
+              <h2 className="mt-1 text-3xl font-black tracking-tight">
                 The league directory
               </h2>
             </div>
 
-            <p className="hidden text-xs text-[#687384] sm:block">
-              Select a club to view its page
+            <p className="hidden text-sm text-[#687384] sm:block">
+              Ranked by record within each division · select a team to view its page
             </p>
           </div>
 
           {mlbTeams.length === 0 ? (
             <div className="border-t-2 border-[#1A2842] bg-[#FCF9F3] px-6 py-12">
               <p className="font-semibold">No teams are available right now.</p>
-              <p className="mt-2 text-sm text-[#687384]">
-                Please try again later.
-              </p>
+              <p className="mt-2 text-sm text-[#687384]">Please try again later.</p>
             </div>
           ) : (
             <div className="space-y-14">
@@ -537,13 +347,11 @@ export default async function TeamsPage() {
                   <div className="mb-6 flex items-baseline gap-4">
                     <h2
                       id="american-league-heading"
-                      className="text-2xl font-bold tracking-tight"
+                      className="text-3xl font-black tracking-tight"
                     >
                       American League
                     </h2>
-                    <span className="font-mono text-xs text-[#687384]">
-                      AL
-                    </span>
+                    <span className="font-mono text-sm font-bold text-[#1F7A74]">AL</span>
                   </div>
 
                   <div className="grid gap-10 xl:grid-cols-3">
@@ -572,13 +380,11 @@ export default async function TeamsPage() {
                   <div className="mb-6 flex items-baseline gap-4">
                     <h2
                       id="national-league-heading"
-                      className="text-2xl font-bold tracking-tight"
+                      className="text-3xl font-black tracking-tight"
                     >
                       National League
                     </h2>
-                    <span className="font-mono text-xs text-[#687384]">
-                      NL
-                    </span>
+                    <span className="font-mono text-sm font-bold text-[#1F7A74]">NL</span>
                   </div>
 
                   <div className="grid gap-10 xl:grid-cols-3">

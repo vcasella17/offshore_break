@@ -3,6 +3,20 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  SEASON,
+  fetchAll,
+  formatAverage,
+  formatDecimal,
+  formatInnings,
+  formatNumber,
+  getTeamColors,
+  getThresholds,
+  headshot,
+  teamLogo,
+} from "@/lib/baseball";
+
+/* ───────────────────────── Types ───────────────────────── */
 
 type Player = {
   id: number;
@@ -64,181 +78,66 @@ type SortKey =
   | "whip"
   | "wins"
   | "losses"
+  | "earned_runs"
   | "strikeouts_pitched";
 
-const TEAM_COLORS: Record<
-  string,
-  { primary: string; secondary: string }
-> = {
-  "Arizona Diamondbacks": {
-    primary: "#A71930",
-    secondary: "#2A9D8F",
-  },
-  "Atlanta Braves": {
-    primary: "#CE1141",
-    secondary: "#13274F",
-  },
-  "Baltimore Orioles": {
-    primary: "#DF4601",
-    secondary: "#000000",
-  },
-  "Boston Red Sox": {
-    primary: "#BD3039",
-    secondary: "#0C2340",
-  },
-  "Chicago Cubs": {
-    primary: "#0E3386",
-    secondary: "#CC3433",
-  },
-  "Chicago White Sox": {
-    primary: "#27251F",
-    secondary: "#C4CED4",
-  },
-  "Cincinnati Reds": {
-    primary: "#C6011F",
-    secondary: "#000000",
-  },
-  "Cleveland Guardians": {
-    primary: "#00385D",
-    secondary: "#E50022",
-  },
-  "Colorado Rockies": {
-    primary: "#333366",
-    secondary: "#7663A8",
-  },
-  "Detroit Tigers": {
-    primary: "#0C2340",
-    secondary: "#FA4616",
-  },
-  "Houston Astros": {
-    primary: "#002D62",
-    secondary: "#EB6E1F",
-  },
-  "Kansas City Royals": {
-    primary: "#004687",
-    secondary: "#BD9B60",
-  },
-  "Los Angeles Angels": {
-    primary: "#BA0021",
-    secondary: "#003263",
-  },
-  "Los Angeles Dodgers": {
-    primary: "#005A9C",
-    secondary: "#D6E7F5",
-  },
-  "Miami Marlins": {
-    primary: "#00A3E0",
-    secondary: "#7CC7E8",
-  },
-  "Milwaukee Brewers": {
-    primary: "#12284B",
-    secondary: "#FFC52F",
-  },
-  "Minnesota Twins": {
-    primary: "#002B5C",
-    secondary: "#D31145",
-  },
-  "New York Mets": {
-    primary: "#002D72",
-    secondary: "#002D72",
-  },
-  "New York Yankees": {
-    primary: "#003087",
-    secondary: "#C4CED4",
-  },
-  "Oakland Athletics": {
-    primary: "#003831",
-    secondary: "#EFB21E",
-  },
-  "Philadelphia Phillies": {
-    primary: "#E81828",
-    secondary: "#006BB6",
-  },
-  "Pittsburgh Pirates": {
-    primary: "#27251F",
-    secondary: "#FDB827",
-  },
-  "San Diego Padres": {
-    primary: "#2F241D",
-    secondary: "#FFC425",
-  },
-  "San Francisco Giants": {
-    primary: "#FD5A1E",
-    secondary: "#000000",
-  },
-  "Seattle Mariners": {
-    primary: "#0C2C56",
-    secondary: "#59B3AD",
-  },
-  "St. Louis Cardinals": {
-    primary: "#C41E3A",
-    secondary: "#0A2240",
-  },
-  "Tampa Bay Rays": {
-    primary: "#092C5C",
-    secondary: "#8FBCE6",
-  },
-  "Texas Rangers": {
-    primary: "#003278",
-    secondary: "#C9DDF2",
-  },
-  "Toronto Blue Jays": {
-    primary: "#134A8E",
-    secondary: "#13294B",
-  },
-  "Washington Nationals": {
-    primary: "#AB0003",
-    secondary: "#11225B",
-  },
+type Column = {
+  key: SortKey;
+  label: string;
+  format: (value: number | null | undefined) => string;
+  highlight?: boolean;
 };
 
-const hittingSorts: { value: SortKey; label: string }[] = [
-  { value: "ops", label: "OPS" },
-  { value: "batting_avg", label: "AVG" },
-  { value: "obp", label: "OBP" },
-  { value: "slg", label: "SLG" },
-  { value: "home_runs", label: "HR" },
-  { value: "rbi", label: "RBI" },
-  { value: "hits", label: "H" },
-  { value: "walks", label: "BB" },
-  { value: "strikeouts", label: "K" },
-  { value: "games", label: "G" },
+const PAGE_SIZE = 250;
+
+const hittingColumns: Column[] = [
+  { key: "games", label: "G", format: formatNumber },
+  { key: "batting_avg", label: "AVG", format: formatAverage },
+  { key: "obp", label: "OBP", format: formatAverage },
+  { key: "slg", label: "SLG", format: formatAverage },
+  { key: "ops", label: "OPS", format: formatAverage, highlight: true },
+  { key: "home_runs", label: "HR", format: formatNumber },
+  { key: "rbi", label: "RBI", format: formatNumber },
+  { key: "hits", label: "H", format: formatNumber },
+  { key: "walks", label: "BB", format: formatNumber },
+  { key: "strikeouts", label: "K", format: formatNumber },
 ];
 
-const pitchingSorts: { value: SortKey; label: string }[] = [
-  { value: "era", label: "ERA" },
-  { value: "whip", label: "WHIP" },
-  { value: "strikeouts_pitched", label: "K" },
-  { value: "innings_pitched", label: "IP" },
-  { value: "wins", label: "W" },
-  { value: "losses", label: "L" },
-  { value: "games", label: "G" },
+const pitchingColumns: Column[] = [
+  { key: "games", label: "G", format: formatNumber },
+  { key: "innings_pitched", label: "IP", format: formatInnings },
+  { key: "era", label: "ERA", format: formatDecimal, highlight: true },
+  { key: "whip", label: "WHIP", format: formatDecimal },
+  { key: "strikeouts_pitched", label: "K", format: formatNumber },
+  { key: "wins", label: "W", format: formatNumber },
+  { key: "losses", label: "L", format: formatNumber },
+  { key: "earned_runs", label: "ER", format: formatNumber },
 ];
 
-function formatAverage(value: number | null | undefined) {
-  if (value === null || value === undefined) return "-";
-  return value.toFixed(3).replace(/^0/, "");
+const PITCHING_ONLY: SortKey[] = [
+  "era",
+  "whip",
+  "strikeouts_pitched",
+  "innings_pitched",
+  "wins",
+  "losses",
+  "earned_runs",
+];
+
+/** Sensible starting filters so one-at-bat players don't top every list */
+function defaultsFor(mode: ViewMode) {
+  return {
+    minAB: mode === "hitting" ? "50" : "0",
+    minIP: mode === "pitching" ? "10" : "0",
+  };
 }
 
-function formatDecimal(value: number | null | undefined) {
-  if (value === null || value === undefined) return "-";
-  return value.toFixed(2);
-}
-
-function formatNumber(value: number | null | undefined) {
-  if (value === null || value === undefined) return "-";
-  return value.toLocaleString();
-}
-
-function formatInnings(value: number | null | undefined) {
-  if (value === null || value === undefined) return "-";
-  return value.toFixed(1);
-}
+/* ───────────────────────── Components ───────────────────────── */
 
 function TeamLogo({ teamId }: { teamId?: string }) {
   if (!teamId) {
     return (
-      <div className="flex h-8 w-8 items-center justify-center border border-[#1A2842]/15 bg-white/40 font-mono text-[8px] font-bold text-[#687384]">
+      <div className="flex h-9 w-9 items-center justify-center border border-[#1A2842]/15 bg-white/40 font-mono text-[0.65rem] font-bold text-[#1F7A74]">
         FA
       </div>
     );
@@ -246,21 +145,29 @@ function TeamLogo({ teamId }: { teamId?: string }) {
 
   return (
     <img
-      src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
+      src={teamLogo(teamId)}
       alt=""
-      className="h-8 w-8 object-contain"
+      aria-hidden="true"
+      className="h-9 w-9 object-contain"
     />
   );
 }
 
 function PlayerHeadshot({ playerId }: { playerId: number }) {
+  const [failed, setFailed] = useState(false);
+
   return (
-    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#E8E1D5]">
-      <img
-        src={`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_80,q_auto:best/v1/people/${playerId}/headshot/67/current`}
-        alt=""
-        className="h-full w-full object-cover"
-      />
+    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#E8E1D5]">
+      {!failed && (
+        <img
+          src={headshot(playerId, 96)}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      )}
     </div>
   );
 }
@@ -272,16 +179,14 @@ function SortArrow({
   active: boolean;
   direction: "asc" | "desc";
 }) {
-  if (!active) {
-    return <span className="ml-1 text-[#1A2842]/20">↕</span>;
-  }
+  if (!active) return <span className="ml-1 text-[#1A2842]/25">↕</span>;
 
   return (
-    <span className="ml-1 text-[#D85F46]">
-      {direction === "desc" ? "↓" : "↑"}
-    </span>
+    <span className="ml-1 text-[#D85F46]">{direction === "desc" ? "↓" : "↑"}</span>
   );
 }
+
+/* ───────────────────────── Page ───────────────────────── */
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -294,130 +199,154 @@ export default function PlayersPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("hitting");
 
   const [sortBy, setSortBy] = useState<SortKey>("ops");
-  const [sortDirection, setSortDirection] =
-    useState<"desc" | "asc">("desc");
+  const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
 
   const [minGames, setMinGames] = useState("0");
-  const [minAB, setMinAB] = useState("0");
-  const [minIP, setMinIP] = useState("0");
+  const [minAB, setMinAB] = useState(defaultsFor("hitting").minAB);
+  const [minIP, setMinIP] = useState(defaultsFor("hitting").minIP);
 
   const [showQualifiedOnly, setShowQualifiedOnly] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(250);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /* Load everything (paged past Supabase's 1,000-row cap) */
   useEffect(() => {
+    let cancelled = false;
+
     async function loadData() {
       setLoading(true);
       setError("");
 
-      const [
-        { data: playerData, error: playerError },
-        { data: statData, error: statError },
-        { data: teamData, error: teamError },
-      ] = await Promise.all([
-        supabase
-          .from("Player")
-          .select("id, name, team_id, position")
-          .order("name")
-          .range(0, 4999),
+      try {
+        const [playerData, statData, { data: teamData, error: teamError }] =
+          await Promise.all([
+            fetchAll<Player>((from, to) =>
+              supabase
+                .from("Player")
+                .select("id, name, team_id, position")
+                .order("id")
+                .range(from, to)
+            ),
+            fetchAll<PlayerStat>((from, to) =>
+              supabase
+                .from("PlayerStats")
+                .select("*")
+                .eq("season", SEASON)
+                .order("player_id")
+                .range(from, to)
+            ),
+            supabase.from("Teams").select("id, name, abbreviation").order("name"),
+          ]);
 
-        supabase
-          .from("PlayerStats")
-          .select(
-            "player_id, season, games, at_bats, hits, home_runs, rbi, walks, strikeouts, batting_avg, obp, slg, ops, innings_pitched, wins, losses, earned_runs, strikeouts_pitched, era, whip"
-          )
-          .eq("season", 2026),
+        if (teamError) throw teamError;
 
-        supabase
-          .from("Teams")
-          .select("id, name, abbreviation")
-          .order("name"),
-      ]);
-
-      if (playerError || statError || teamError) {
-        setError("Unable to load player data. Please refresh the page.");
+        if (!cancelled) {
+          setPlayers(playerData);
+          setStats(statData);
+          setTeams((teamData ?? []) as Team[]);
+        }
+      } catch (err) {
+        console.error("Failed to load players:", err);
+        if (!cancelled) {
+          setError("Unable to load player data. Please refresh the page.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      setPlayers(playerData ?? []);
-      setStats(statData ?? []);
-      setTeams(teamData ?? []);
-      setLoading(false);
     }
 
     loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const statMap = useMemo(() => {
-    return new Map(stats.map((stat) => [stat.player_id, stat]));
-  }, [stats]);
+  /* Honor links from the leaders page: /players?sort=era&dir=asc */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sort = params.get("sort") as SortKey | null;
+    if (!sort) return;
 
-  const teamMap = useMemo(() => {
-    return new Map(teams.map((team) => [team.id, team]));
-  }, [teams]);
+    const knownKeys = new Set<SortKey>([
+      ...hittingColumns.map((column) => column.key),
+      ...pitchingColumns.map((column) => column.key),
+    ]);
+    if (!knownKeys.has(sort)) return;
 
-  const positions = useMemo(() => {
-    return Array.from(
-      new Set(
-        players
-          .map((player) => player.position)
-          .filter(Boolean)
-      )
-    ).sort();
-  }, [players]);
+    const mode: ViewMode = PITCHING_ONLY.includes(sort) ? "pitching" : "hitting";
+    const defaults = defaultsFor(mode);
 
-  const playerRows = useMemo<PlayerRow[]>(() => {
-    return players.map((player) => ({
-      ...player,
-      stats: statMap.get(player.id),
-      team: teamMap.get(player.team_id),
-    }));
-  }, [players, statMap, teamMap]);
+    setViewMode(mode);
+    setMinAB(defaults.minAB);
+    setMinIP(defaults.minIP);
+    setSortBy(sort);
+    setSortDirection(params.get("dir") === "asc" ? "asc" : "desc");
+  }, []);
+
+  const thresholds = useMemo(() => getThresholds(stats), [stats]);
+
+  const statMap = useMemo(
+    () => new Map(stats.map((stat) => [stat.player_id, stat])),
+    [stats]
+  );
+
+  const teamMap = useMemo(
+    () => new Map(teams.map((item) => [item.id, item])),
+    [teams]
+  );
+
+  const positions = useMemo(
+    () =>
+      Array.from(
+        new Set(players.map((player) => player.position).filter(Boolean))
+      ).sort(),
+    [players]
+  );
+
+  const playerRows = useMemo<PlayerRow[]>(
+    () =>
+      players.map((player) => ({
+        ...player,
+        stats: statMap.get(player.id),
+        team: teamMap.get(player.team_id),
+      })),
+    [players, statMap, teamMap]
+  );
 
   const filteredPlayers = useMemo(() => {
     const minimumGames = Number(minGames) || 0;
     const minimumAB = Number(minAB) || 0;
     const minimumIP = Number(minIP) || 0;
+    const normalizedSearch = search.trim().toLowerCase();
 
     const filtered = playerRows.filter((player) => {
       const stat = player.stats;
-
-      const normalizedSearch = search.trim().toLowerCase();
 
       const matchesSearch =
         normalizedSearch.length === 0 ||
         player.name.toLowerCase().includes(normalizedSearch);
 
-      const matchesPosition =
-        position === "All" || player.position === position;
-
-      const matchesTeam =
-        team === "All" || player.team_id === team;
+      const matchesPosition = position === "All" || player.position === position;
+      const matchesTeam = team === "All" || player.team_id === team;
 
       const matchesMode =
         viewMode === "all" ||
-        (viewMode === "hitting" &&
-          (stat?.at_bats ?? 0) > 0) ||
-        (viewMode === "pitching" &&
-          (stat?.innings_pitched ?? 0) > 0);
+        (viewMode === "hitting" && (stat?.at_bats ?? 0) > 0) ||
+        (viewMode === "pitching" && (stat?.innings_pitched ?? 0) > 0);
 
-      const matchesGames =
-        (stat?.games ?? 0) >= minimumGames;
-
-      const matchesAB =
-        viewMode !== "hitting" ||
-        (stat?.at_bats ?? 0) >= minimumAB;
-
+      const matchesGames = (stat?.games ?? 0) >= minimumGames;
+      const matchesAB = viewMode !== "hitting" || (stat?.at_bats ?? 0) >= minimumAB;
       const matchesIP =
-        viewMode !== "pitching" ||
-        (stat?.innings_pitched ?? 0) >= minimumIP;
+        viewMode !== "pitching" || (stat?.innings_pitched ?? 0) >= minimumIP;
 
       const matchesQualified =
         !showQualifiedOnly ||
         (viewMode === "pitching"
-          ? (stat?.innings_pitched ?? 0) >= 50
-          : (stat?.at_bats ?? 0) >= 150);
+          ? (stat?.innings_pitched ?? 0) >= thresholds.minIp
+          : (stat?.at_bats ?? 0) >= thresholds.minAb);
 
       return (
         matchesSearch &&
@@ -438,17 +367,17 @@ export default function PlayersPage() {
           : b.name.localeCompare(a.name);
       }
 
-      const aValue = Number(
-        a.stats?.[sortBy as keyof PlayerStat] ?? -1
-      );
+      const aRaw = a.stats?.[sortBy as keyof PlayerStat];
+      const bRaw = b.stats?.[sortBy as keyof PlayerStat];
+      const aValue = aRaw == null ? null : Number(aRaw);
+      const bValue = bRaw == null ? null : Number(bRaw);
 
-      const bValue = Number(
-        b.stats?.[sortBy as keyof PlayerStat] ?? -1
-      );
+      // players with no value always sink to the bottom
+      if (aValue === null && bValue === null) return 0;
+      if (aValue === null) return 1;
+      if (bValue === null) return -1;
 
-      return sortDirection === "asc"
-        ? aValue - bValue
-        : bValue - aValue;
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
     });
 
     return filtered;
@@ -464,6 +393,7 @@ export default function PlayersPage() {
     minAB,
     minIP,
     showQualifiedOnly,
+    thresholds,
   ]);
 
   const visiblePlayers = filteredPlayers.slice(0, visibleCount);
@@ -473,29 +403,44 @@ export default function PlayersPage() {
     [teams, team]
   );
 
+  const defaults = defaultsFor(viewMode);
+
   const activeFilterCount =
     Number(search.length > 0) +
     Number(position !== "All") +
     Number(team !== "All") +
     Number(minGames !== "0") +
-    Number(minAB !== "0") +
-    Number(minIP !== "0") +
+    Number(minAB !== defaults.minAB) +
+    Number(minIP !== defaults.minIP) +
     Number(showQualifiedOnly);
+
+  const columns = viewMode === "pitching" ? pitchingColumns : hittingColumns;
+  const sortOptions = columns.map((column) => ({
+    value: column.key,
+    label: column.label,
+  }));
 
   function changeSort(value: SortKey) {
     if (sortBy === value) {
-      setSortDirection((current) =>
-        current === "desc" ? "asc" : "desc"
-      );
+      setSortDirection((current) => (current === "desc" ? "asc" : "desc"));
     } else {
       setSortBy(value);
-      setSortDirection("desc");
+      // ERA / WHIP / losses / earned runs: lower is better
+      setSortDirection(
+        ["era", "whip", "losses", "earned_runs", "name"].includes(value)
+          ? "asc"
+          : "desc"
+      );
     }
   }
 
   function changeView(mode: ViewMode) {
+    const next = defaultsFor(mode);
+
     setViewMode(mode);
-    setVisibleCount(250);
+    setMinAB(next.minAB);
+    setMinIP(next.minIP);
+    setVisibleCount(PAGE_SIZE);
 
     if (mode === "pitching") {
       setSortBy("era");
@@ -507,46 +452,31 @@ export default function PlayersPage() {
   }
 
   function resetFilters() {
+    const next = defaultsFor(viewMode);
+
     setSearch("");
     setPosition("All");
     setTeam("All");
     setMinGames("0");
-    setMinAB("0");
-    setMinIP("0");
+    setMinAB(next.minAB);
+    setMinIP(next.minIP);
     setShowQualifiedOnly(false);
-    setVisibleCount(250);
+    setVisibleCount(PAGE_SIZE);
   }
 
-  function getTeamAccent(player: PlayerRow) {
-    if (!player.team) {
-      return {
-        primary: "#1A2842",
-        secondary: "#D85F46",
-      };
-    }
-
-    return (
-      TEAM_COLORS[player.team.name] ?? {
-        primary: "#1A2842",
-        secondary: "#D85F46",
-      }
-    );
-  }
-
-  const currentSortOptions =
-    viewMode === "pitching" ? pitchingSorts : hittingSorts;
+  const labelClass =
+    "text-[0.7rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]";
+  const selectClass =
+    "border border-[#1A2842]/20 bg-[#F8F3EA] px-4 py-3.5 text-base outline-none focus:border-[#D85F46]";
 
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
-      {/* ========================================================= */}
-      {/* PAGE HEADER */}
-      {/* ========================================================= */}
-
+      {/* HEADER */}
       <section className="border-b border-[#1A2842]/15">
         <div className="container-page py-12 md:py-16">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#D85F46]">
+              <p className="text-[0.75rem] font-bold uppercase tracking-[0.22em] text-[#1F7A74]">
                 Offshore Break / Database
               </p>
 
@@ -554,45 +484,32 @@ export default function PlayersPage() {
                 Players
               </h1>
 
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-[#687384]">
-                Explore the 2026 player database by performance,
-                team, position, and statistical profile.
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[#687384]">
+                Explore the {SEASON} player database by performance, team,
+                position, and statistical profile.
               </p>
             </div>
 
             <div className="flex gap-8 border-l border-[#1A2842]/15 pl-6">
               <div>
-                <p className="font-mono text-3xl font-black">
+                <p className="font-mono text-4xl font-black">
                   {players.length.toLocaleString()}
                 </p>
-
-                <p className="mt-1 text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-                  Players
-                </p>
+                <p className={`mt-1 ${labelClass}`}>Players</p>
               </div>
 
               <div>
-                <p className="font-mono text-3xl font-black">
-                  {teams.length}
-                </p>
-
-                <p className="mt-1 text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-                  Teams
-                </p>
+                <p className="font-mono text-4xl font-black">{teams.length}</p>
+                <p className={`mt-1 ${labelClass}`}>Teams</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ========================================================= */}
-      {/* DATABASE CONTROLS */}
-      {/* ========================================================= */}
-
+      {/* CONTROLS */}
       <section className="border-b border-[#1A2842]/15 bg-[#FCF9F3]">
         <div className="container-page py-6">
-          {/* View switcher */}
-
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex border border-[#1A2842]/20">
               {[
@@ -603,7 +520,7 @@ export default function PlayersPage() {
                 <button
                   key={item.value}
                   onClick={() => changeView(item.value)}
-                  className={`border-r border-[#1A2842]/20 px-5 py-3 text-[9px] font-black uppercase tracking-[0.16em] transition last:border-r-0 ${
+                  className={`border-r border-[#1A2842]/20 px-6 py-3 text-[0.75rem] font-black uppercase tracking-[0.16em] transition last:border-r-0 ${
                     viewMode === item.value
                       ? "bg-[#1A2842] text-white"
                       : "bg-transparent text-[#687384] hover:bg-[#1A2842]/5 hover:text-[#1A2842]"
@@ -618,29 +535,26 @@ export default function PlayersPage() {
               {selectedTeam && (
                 <div className="hidden items-center gap-2 md:flex">
                   <TeamLogo teamId={selectedTeam.id} />
-
-                  <span className="text-[9px] font-black uppercase tracking-[0.15em]">
+                  <span className="text-[0.75rem] font-black uppercase tracking-[0.15em]">
                     {selectedTeam.abbreviation}
                   </span>
                 </div>
               )}
 
-              <p className="font-mono text-xs text-[#687384]">
+              <p className="font-mono text-sm font-bold text-[#1F7A74]">
                 {filteredPlayers.length.toLocaleString()} results
               </p>
 
               {activeFilterCount > 0 && (
                 <button
                   onClick={resetFilters}
-                  className="text-[9px] font-black uppercase tracking-[0.15em] text-[#D85F46] hover:underline"
+                  className="text-[0.75rem] font-black uppercase tracking-[0.15em] text-[#D85F46] hover:underline"
                 >
                   Reset
                 </button>
               )}
             </div>
           </div>
-
-          {/* Search + filters */}
 
           <div className="mt-6 grid gap-3 lg:grid-cols-[2fr_1fr_1fr_1fr]">
             <div className="relative">
@@ -650,15 +564,16 @@ export default function PlayersPage() {
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
-                  setVisibleCount(250);
+                  setVisibleCount(PAGE_SIZE);
                 }}
-                className="w-full border border-[#1A2842]/20 bg-[#F8F3EA] px-4 py-3.5 pr-10 text-sm outline-none transition placeholder:text-[#687384] focus:border-[#D85F46]"
+                className="w-full border border-[#1A2842]/20 bg-[#F8F3EA] px-4 py-3.5 pr-10 text-base outline-none transition placeholder:text-[#687384] focus:border-[#D85F46]"
               />
 
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-[#687384] hover:text-[#D85F46]"
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-base text-[#687384] hover:text-[#D85F46]"
                 >
                   ×
                 </button>
@@ -669,12 +584,11 @@ export default function PlayersPage() {
               value={team}
               onChange={(event) => {
                 setTeam(event.target.value);
-                setVisibleCount(250);
+                setVisibleCount(PAGE_SIZE);
               }}
-              className="border border-[#1A2842]/20 bg-[#F8F3EA] px-4 py-3.5 text-sm outline-none focus:border-[#D85F46]"
+              className={selectClass}
             >
               <option value="All">All Teams</option>
-
               {teams.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.abbreviation} — {item.name}
@@ -686,12 +600,11 @@ export default function PlayersPage() {
               value={position}
               onChange={(event) => {
                 setPosition(event.target.value);
-                setVisibleCount(250);
+                setVisibleCount(PAGE_SIZE);
               }}
-              className="border border-[#1A2842]/20 bg-[#F8F3EA] px-4 py-3.5 text-sm outline-none focus:border-[#D85F46]"
+              className={selectClass}
             >
               <option value="All">All Positions</option>
-
               {positions.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -700,13 +613,12 @@ export default function PlayersPage() {
             </select>
 
             <select
-              value={sortBy}
-              onChange={(event) =>
-                changeSort(event.target.value as SortKey)
-              }
-              className="border border-[#1A2842]/20 bg-[#F8F3EA] px-4 py-3.5 text-sm outline-none focus:border-[#D85F46]"
+              value={sortBy === "name" ? "" : sortBy}
+              onChange={(event) => changeSort(event.target.value as SortKey)}
+              className={selectClass}
             >
-              {currentSortOptions.map((option) => (
+              {sortBy === "name" && <option value="">Sorted by name</option>}
+              {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   Sort by {option.label}
                 </option>
@@ -714,16 +626,14 @@ export default function PlayersPage() {
             </select>
           </div>
 
-          {/* Advanced filters */}
-
           <div className="mt-3 grid gap-3 md:grid-cols-3 lg:grid-cols-4">
             <select
               value={minGames}
               onChange={(event) => {
                 setMinGames(event.target.value);
-                setVisibleCount(250);
+                setVisibleCount(PAGE_SIZE);
               }}
-              className="border border-[#1A2842]/15 bg-[#F8F3EA] px-4 py-3 text-xs outline-none focus:border-[#D85F46]"
+              className="border border-[#1A2842]/15 bg-[#F8F3EA] px-4 py-3 text-sm outline-none focus:border-[#D85F46]"
             >
               <option value="0">Any Games Played</option>
               <option value="10">10+ Games</option>
@@ -737,15 +647,16 @@ export default function PlayersPage() {
                 value={minAB}
                 onChange={(event) => {
                   setMinAB(event.target.value);
-                  setVisibleCount(250);
+                  setVisibleCount(PAGE_SIZE);
                 }}
-                className="border border-[#1A2842]/15 bg-[#F8F3EA] px-4 py-3 text-xs outline-none focus:border-[#D85F46]"
+                className="border border-[#1A2842]/15 bg-[#F8F3EA] px-4 py-3 text-sm outline-none focus:border-[#D85F46]"
               >
                 <option value="0">Any At Bats</option>
                 <option value="50">50+ AB</option>
                 <option value="100">100+ AB</option>
                 <option value="150">150+ AB</option>
                 <option value="300">300+ AB</option>
+                <option value="450">450+ AB</option>
               </select>
             )}
 
@@ -754,15 +665,16 @@ export default function PlayersPage() {
                 value={minIP}
                 onChange={(event) => {
                   setMinIP(event.target.value);
-                  setVisibleCount(250);
+                  setVisibleCount(PAGE_SIZE);
                 }}
-                className="border border-[#1A2842]/15 bg-[#F8F3EA] px-4 py-3 text-xs outline-none focus:border-[#D85F46]"
+                className="border border-[#1A2842]/15 bg-[#F8F3EA] px-4 py-3 text-sm outline-none focus:border-[#D85F46]"
               >
                 <option value="0">Any Innings</option>
                 <option value="10">10+ IP</option>
                 <option value="25">25+ IP</option>
                 <option value="50">50+ IP</option>
                 <option value="100">100+ IP</option>
+                <option value="150">150+ IP</option>
               </select>
             )}
 
@@ -772,62 +684,57 @@ export default function PlayersPage() {
                 checked={showQualifiedOnly}
                 onChange={(event) => {
                   setShowQualifiedOnly(event.target.checked);
-                  setVisibleCount(250);
+                  setVisibleCount(PAGE_SIZE);
                 }}
                 className="h-4 w-4 accent-[#D85F46]"
               />
 
-              <span className="text-[9px] font-black uppercase tracking-[0.14em]">
+              <span className="text-[0.75rem] font-black uppercase tracking-[0.14em]">
                 Qualified Only
+                <span className="ml-2 font-mono font-semibold normal-case tracking-normal text-[#1F7A74]">
+                  {viewMode === "pitching"
+                    ? `${thresholds.minIp}+ IP`
+                    : `${thresholds.minAb}+ AB`}
+                </span>
               </span>
             </label>
 
             <div className="hidden items-center justify-end lg:flex">
-              <p className="text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-                {viewMode === "pitching"
-                  ? "Pitching data"
-                  : "Hitting data"}{" "}
-                · 2026
+              <p className={labelClass}>
+                {viewMode === "pitching" ? "Pitching data" : "Hitting data"} ·{" "}
+                {SEASON}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ========================================================= */}
-      {/* ACTIVE FILTER BAR */}
-      {/* ========================================================= */}
-
-      {(search ||
-        position !== "All" ||
-        team !== "All" ||
-        showQualifiedOnly) && (
+      {/* ACTIVE FILTERS */}
+      {(search || position !== "All" || team !== "All" || showQualifiedOnly) && (
         <section className="border-b border-[#1A2842]/10 bg-[#F8F3EA]">
           <div className="container-page flex flex-wrap items-center gap-2 py-3">
-            <span className="mr-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              Filters
-            </span>
+            <span className={`mr-1 ${labelClass}`}>Filters</span>
 
             {search && (
-              <span className="border border-[#1A2842]/15 bg-white/40 px-3 py-1.5 font-mono text-[9px]">
+              <span className="border border-[#1A2842]/15 bg-white/40 px-3 py-1.5 font-mono text-xs">
                 {search}
               </span>
             )}
 
             {position !== "All" && (
-              <span className="border border-[#1A2842]/15 bg-white/40 px-3 py-1.5 font-mono text-[9px]">
+              <span className="border border-[#1A2842]/15 bg-white/40 px-3 py-1.5 font-mono text-xs">
                 {position}
               </span>
             )}
 
             {selectedTeam && (
-              <span className="border border-[#1A2842]/15 bg-white/40 px-3 py-1.5 font-mono text-[9px]">
+              <span className="border border-[#1A2842]/15 bg-white/40 px-3 py-1.5 font-mono text-xs">
                 {selectedTeam.abbreviation}
               </span>
             )}
 
             {showQualifiedOnly && (
-              <span className="border border-[#D85F46]/30 bg-[#D85F46]/5 px-3 py-1.5 font-mono text-[9px] text-[#D85F46]">
+              <span className="border border-[#D85F46]/30 bg-[#D85F46]/5 px-3 py-1.5 font-mono text-xs text-[#D85F46]">
                 QUALIFIED
               </span>
             )}
@@ -835,18 +742,13 @@ export default function PlayersPage() {
         </section>
       )}
 
-      {/* ========================================================= */}
-      {/* PLAYER TABLE */}
-      {/* ========================================================= */}
-
-      <section className="container-page py-8">
+      {/* TABLE */}
+      <section className="container-page py-10">
         <div className="mb-5 flex items-end justify-between">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#D85F46]">
-              2026 Player Index
-            </p>
+            <p className={labelClass}>{SEASON} Player Index</p>
 
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.03em]">
+            <h2 className="mt-1 text-3xl font-black tracking-[-0.03em]">
               {viewMode === "pitching"
                 ? "Pitching Leaders"
                 : viewMode === "hitting"
@@ -856,285 +758,89 @@ export default function PlayersPage() {
           </div>
 
           <div className="hidden text-right md:block">
-            <p className="font-mono text-xs font-bold">
+            <p className="font-mono text-sm font-bold">
               Showing {visiblePlayers.length.toLocaleString()}
               {filteredPlayers.length > visiblePlayers.length
                 ? ` of ${filteredPlayers.length.toLocaleString()}`
                 : ""}
             </p>
 
-            <p className="mt-1 text-[8px] font-black uppercase tracking-[0.15em] text-[#687384]">
-              Sorted{" "}
-              {sortDirection === "desc"
-                ? "Descending"
-                : "Ascending"}
+            <p className={`mt-1 ${labelClass}`}>
+              Sorted {sortDirection === "desc" ? "Descending" : "Ascending"}
             </p>
           </div>
         </div>
 
         {error ? (
           <div className="border border-[#D85F46]/30 bg-[#D85F46]/5 px-6 py-16 text-center">
-            <p className="text-sm font-bold text-[#D85F46]">
-              {error}
-            </p>
+            <p className="text-base font-bold text-[#D85F46]">{error}</p>
 
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 border border-[#1A2842] bg-[#1A2842] px-5 py-3 text-[9px] font-black uppercase tracking-[0.15em] text-white"
+              className="mt-4 border border-[#1A2842] bg-[#1A2842] px-5 py-3 text-[0.75rem] font-black uppercase tracking-[0.15em] text-white"
             >
               Refresh
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto border-t-2 border-[#1A2842]">
-            <table className="w-full min-w-[1050px] border-collapse">
+            <table className="w-full min-w-[64rem] border-collapse">
               <thead>
                 <tr className="border-b border-[#1A2842]/20 text-left">
                   <th
                     onClick={() => changeSort("name")}
-                    className="sticky left-0 z-10 cursor-pointer bg-[#F8F3EA] py-4 pr-6 text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
+                    className="sticky left-0 z-10 cursor-pointer bg-[#F8F3EA] py-4 pr-6 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#1F7A74]"
                   >
                     Player
-                    <SortArrow
-                      active={sortBy === "name"}
-                      direction={sortDirection}
-                    />
+                    <SortArrow active={sortBy === "name"} direction={sortDirection} />
                   </th>
 
-                  <th className="px-4 py-4 text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]">
+                  <th className="px-4 py-4 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#1F7A74]">
                     Team
                   </th>
 
-                  <th className="px-4 py-4 text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]">
+                  <th className="px-4 py-4 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#1F7A74]">
                     Pos
                   </th>
 
-                  {viewMode !== "pitching" ? (
-                    <>
-                      <th
-                        onClick={() => changeSort("games")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        G
-                        <SortArrow
-                          active={sortBy === "games"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("batting_avg")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        AVG
-                        <SortArrow
-                          active={sortBy === "batting_avg"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("obp")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        OBP
-                        <SortArrow
-                          active={sortBy === "obp"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("slg")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        SLG
-                        <SortArrow
-                          active={sortBy === "slg"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("ops")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#D85F46]"
-                      >
-                        OPS
-                        <SortArrow
-                          active={sortBy === "ops"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("home_runs")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        HR
-                        <SortArrow
-                          active={sortBy === "home_runs"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("rbi")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        RBI
-                        <SortArrow
-                          active={sortBy === "rbi"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("hits")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        H
-                        <SortArrow
-                          active={sortBy === "hits"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("walks")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        BB
-                        <SortArrow
-                          active={sortBy === "walks"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("strikeouts")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        K
-                        <SortArrow
-                          active={sortBy === "strikeouts"}
-                          direction={sortDirection}
-                        />
-                      </th>
-                    </>
-                  ) : (
-                    <>
-                      <th
-                        onClick={() => changeSort("games")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        G
-                        <SortArrow
-                          active={sortBy === "games"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("innings_pitched")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        IP
-                        <SortArrow
-                          active={sortBy === "innings_pitched"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("era")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#D85F46]"
-                      >
-                        ERA
-                        <SortArrow
-                          active={sortBy === "era"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("whip")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        WHIP
-                        <SortArrow
-                          active={sortBy === "whip"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() =>
-                          changeSort("strikeouts_pitched")
-                        }
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        K
-                        <SortArrow
-                          active={sortBy === "strikeouts_pitched"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("wins")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        W
-                        <SortArrow
-                          active={sortBy === "wins"}
-                          direction={sortDirection}
-                        />
-                      </th>
-
-                      <th
-                        onClick={() => changeSort("losses")}
-                        className="cursor-pointer px-4 py-4 text-right text-[8px] font-black uppercase tracking-[0.14em] text-[#687384]"
-                      >
-                        L
-                        <SortArrow
-                          active={sortBy === "losses"}
-                          direction={sortDirection}
-                        />
-                      </th>
-                    </>
-                  )}
+                  {columns.map((column) => (
+                    <th
+                      key={column.key}
+                      onClick={() => changeSort(column.key)}
+                      className={`cursor-pointer px-4 py-4 text-right text-[0.75rem] font-black uppercase tracking-[0.14em] ${
+                        column.highlight ? "text-[#D85F46]" : "text-[#1F7A74]"
+                      }`}
+                    >
+                      {column.label}
+                      <SortArrow
+                        active={sortBy === column.key}
+                        direction={sortDirection}
+                      />
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan={12}
-                      className="py-20 text-center"
-                    >
-                      <p className="font-mono text-xs text-[#687384]">
+                    <td colSpan={3 + columns.length} className="py-20 text-center">
+                      <p className="font-mono text-sm text-[#687384]">
                         Loading player database...
                       </p>
                     </td>
                   </tr>
                 ) : visiblePlayers.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={12}
-                      className="py-20 text-center"
-                    >
-                      <p className="text-lg font-black">
-                        No players found
-                      </p>
-
-                      <p className="mt-2 text-xs text-[#687384]">
+                    <td colSpan={3 + columns.length} className="py-20 text-center">
+                      <p className="text-xl font-black">No players found</p>
+                      <p className="mt-2 text-sm text-[#687384]">
                         Try removing one or more filters.
                       </p>
 
                       <button
                         onClick={resetFilters}
-                        className="mt-5 border border-[#1A2842] px-5 py-3 text-[9px] font-black uppercase tracking-[0.15em] hover:bg-[#1A2842] hover:text-white"
+                        className="mt-5 border border-[#1A2842] px-5 py-3 text-[0.75rem] font-black uppercase tracking-[0.15em] hover:bg-[#1A2842] hover:text-white"
                       >
                         Reset Filters
                       </button>
@@ -1142,15 +848,13 @@ export default function PlayersPage() {
                   </tr>
                 ) : (
                   visiblePlayers.map((player) => {
-                    const colors = getTeamAccent(player);
+                    const colors = getTeamColors(player.team?.name);
 
                     return (
                       <tr
                         key={player.id}
                         className="group border-b border-[#1A2842]/10 transition hover:bg-white/50"
                       >
-                        {/* Player */}
-
                         <td className="sticky left-0 z-10 bg-[#F8F3EA] py-3 pr-6 group-hover:bg-white/80">
                           <Link
                             href={`/players/${player.id}`}
@@ -1158,137 +862,60 @@ export default function PlayersPage() {
                           >
                             <span
                               className="absolute -left-5 top-0 h-full w-[3px] opacity-0 transition group-hover:opacity-100"
-                              style={{
-                                backgroundColor: colors.secondary,
-                              }}
+                              style={{ backgroundColor: colors.secondary }}
                             />
 
                             <PlayerHeadshot playerId={player.id} />
 
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-black transition group-hover:text-[#D85F46]">
+                              <p className="truncate text-base font-black transition group-hover:text-[#D85F46]">
                                 {player.name}
                               </p>
-
-                              <p className="mt-0.5 font-mono text-[8px] text-[#687384]">
+                              <p className="mt-0.5 font-mono text-[0.7rem] font-semibold text-[#1F7A74]">
                                 #{player.id}
                               </p>
                             </div>
                           </Link>
                         </td>
 
-                        {/* Team */}
-
                         <td className="px-4 py-3">
                           <Link
-                            href={
-                              player.team
-                                ? `/teams/${player.team.id}`
-                                : "#"
-                            }
+                            href={player.team ? `/teams/${player.team.id}` : "#"}
                             className="flex items-center gap-2"
                           >
-                            <TeamLogo
-                              teamId={player.team?.id}
-                            />
-
-                            <span className="text-[10px] font-black uppercase tracking-[0.08em] transition group-hover:text-[#D85F46]">
+                            <TeamLogo teamId={player.team?.id} />
+                            <span className="text-xs font-black uppercase tracking-[0.08em] transition group-hover:text-[#D85F46]">
                               {player.team?.abbreviation ?? "-"}
                             </span>
                           </Link>
                         </td>
 
-                        {/* Position */}
-
                         <td className="px-4 py-3">
-                          <span className="border border-[#1A2842]/10 px-2 py-1 font-mono text-[9px] text-[#687384]">
+                          <span className="border border-[#1F7A74]/25 px-2 py-1 font-mono text-xs font-semibold text-[#1F7A74]">
                             {player.position || "-"}
                           </span>
                         </td>
 
-                        {viewMode !== "pitching" ? (
-                          <>
-                            <td className="px-4 py-4 text-right font-mono text-xs text-[#687384]">
-                              {formatNumber(player.stats?.games)}
-                            </td>
+                        {columns.map((column) => {
+                          const value = player.stats?.[
+                            column.key as keyof PlayerStat
+                          ] as number | null | undefined;
 
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatAverage(
-                                player.stats?.batting_avg
-                              )}
+                          return (
+                            <td
+                              key={column.key}
+                              className={`px-4 py-4 text-right font-mono text-sm ${
+                                column.highlight
+                                  ? "bg-[#D85F46]/[0.035] font-black text-[#D85F46]"
+                                  : column.key === "games"
+                                    ? "text-[#687384]"
+                                    : ""
+                              }`}
+                            >
+                              {column.format(value)}
                             </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatAverage(player.stats?.obp)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatAverage(player.stats?.slg)}
-                            </td>
-
-                            <td className="bg-[#D85F46]/[0.035] px-4 py-4 text-right font-mono text-xs font-black text-[#D85F46]">
-                              {formatAverage(player.stats?.ops)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(
-                                player.stats?.home_runs
-                              )}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(player.stats?.rbi)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(player.stats?.hits)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(player.stats?.walks)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(
-                                player.stats?.strikeouts
-                              )}
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-4 py-4 text-right font-mono text-xs text-[#687384]">
-                              {formatNumber(player.stats?.games)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatInnings(
-                                player.stats?.innings_pitched
-                              )}
-                            </td>
-
-                            <td className="bg-[#D85F46]/[0.035] px-4 py-4 text-right font-mono text-xs font-black text-[#D85F46]">
-                              {formatDecimal(player.stats?.era)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatDecimal(player.stats?.whip)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(
-                                player.stats?.strikeouts_pitched
-                              )}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(player.stats?.wins)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-mono text-xs">
-                              {formatNumber(player.stats?.losses)}
-                            </td>
-                          </>
-                        )}
+                          );
+                        })}
                       </tr>
                     );
                   })
@@ -1298,77 +925,27 @@ export default function PlayersPage() {
           </div>
         )}
 
-        {/* Show more */}
-
-        {!loading &&
-          filteredPlayers.length > visiblePlayers.length && (
-            <div className="flex justify-center border-b border-[#1A2842]/10 py-8">
-              <button
-                onClick={() =>
-                  setVisibleCount((current) => current + 250)
-                }
-                className="border border-[#1A2842] bg-[#1A2842] px-7 py-3 text-[9px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-[#D85F46] hover:border-[#D85F46]"
-              >
-                Show More Players
-              </button>
-            </div>
-          )}
-
-        {!loading &&
-          filteredPlayers.length > 0 && (
-            <div className="flex items-center justify-between pt-5">
-              <p className="font-mono text-[9px] text-[#687384]">
-                {visiblePlayers.length.toLocaleString()} of{" "}
-                {filteredPlayers.length.toLocaleString()} shown
-              </p>
-
-              <p className="text-[8px] font-black uppercase tracking-[0.15em] text-[#687384]">
-                Offshore Break · 2026
-              </p>
-            </div>
-          )}
-      </section>
-
-      {/* ========================================================= */}
-      {/* FOOTER */}
-      {/* ========================================================= */}
-
-      <section className="mt-8 border-t border-[#101A2C] bg-[#1A2842] px-5 py-14 text-[#F8F3EA] md:px-8">
-        <div className="container-wide ">
-          <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#59B3AD]">
-                Offshore Break
-              </p>
-
-              <h3 className="mt-3 text-3xl font-black tracking-[-0.04em]">
-                The numbers are only the beginning.
-              </h3>
-
-              <p className="mt-3 max-w-lg text-xs leading-5 text-white/40">
-                Browse the player database, compare individual
-                profiles, or explore the rest of the Offshore Break
-                baseball universe.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/leaders"
-                className="border border-white/15 px-5 py-3 text-[9px] font-black uppercase tracking-[0.15em] text-white/65 transition hover:border-[#D85F46] hover:bg-[#D85F46] hover:text-white"
-              >
-                Leaderboards →
-              </Link>
-
-              <Link
-                href="/teams"
-                className="border border-white/15 px-5 py-3 text-[9px] font-black uppercase tracking-[0.15em] text-white/65 transition hover:border-[#59B3AD] hover:bg-[#59B3AD] hover:text-white"
-              >
-                Teams →
-              </Link>
-            </div>
+        {!loading && filteredPlayers.length > visiblePlayers.length && (
+          <div className="flex justify-center border-b border-[#1A2842]/10 py-8">
+            <button
+              onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+              className="border border-[#1A2842] bg-[#1A2842] px-8 py-3.5 text-[0.75rem] font-black uppercase tracking-[0.16em] text-white transition hover:border-[#D85F46] hover:bg-[#D85F46]"
+            >
+              Show More Players
+            </button>
           </div>
-        </div>
+        )}
+
+        {!loading && filteredPlayers.length > 0 && (
+          <div className="flex items-center justify-between pt-5">
+            <p className="font-mono text-xs font-semibold text-[#1F7A74]">
+              {visiblePlayers.length.toLocaleString()} of{" "}
+              {filteredPlayers.length.toLocaleString()} shown
+            </p>
+
+            <p className={labelClass}>Offshore Break · {SEASON}</p>
+          </div>
+        )}
       </section>
     </main>
   );
