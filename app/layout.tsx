@@ -17,6 +17,7 @@ const navigation = [
   { href: "/games", label: "Games" },
   { href: "/leaders", label: "Leaders" },
   { href: "/compare", label: "Compare" },
+  { href: "/appraisal", label: "Appraisal", badge: "New" },
 ];
 
 function NavBar() {
@@ -62,6 +63,11 @@ function NavBar() {
               <span className="text-base font-semibold transition-colors group-hover:text-[#D85F46]">
                 {item.label}
               </span>
+              {item.badge && (
+  <span className="ml-2 bg-[#D85F46] px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-white">
+    {item.badge}
+  </span>
+)}
               <span
                 aria-hidden="true"
                 className="absolute bottom-0 left-4 right-4 h-[2px] origin-left scale-x-0 bg-[#D85F46] transition-transform duration-200 group-hover:scale-x-100 lg:left-5 lg:right-5"
