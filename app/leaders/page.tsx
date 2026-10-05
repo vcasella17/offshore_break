@@ -16,6 +16,7 @@ import {
   teamLogo,
 } from "@/lib/baseball";
 import SpotlightCard from "@/components/SpotlightCard";
+import { actionForStat } from "@/lib/playerPhotos";
 
 /* ───────────────────────── Types ───────────────────────── */
 
@@ -596,6 +597,7 @@ export default function LeadersPage() {
               team={topPlayer.team}
               badge={`#1 · ${primaryCategory.label}`}
               stats={spotlightStats}
+              action={actionForStat(String(primaryCategory.key))}
               className="min-h-[28rem]"
             />
 

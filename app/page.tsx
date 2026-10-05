@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import SpotlightCard from "@/components/SpotlightCard";
 
 /* ───────────────────────── Types ───────────────────────── */
 
@@ -96,11 +97,6 @@ function headshot(playerId: number) {
   return `https://img.mlbstatic.com/mlb-photos/image/upload/w_500,q_auto:good/v1/people/${playerId}/headshot/67/current`;
 }
 
-/** Transparent-background headshot (used as the last-resort big photo) */
-function headshotSilo(playerId: number) {
-  return `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:silo:current.png/w_640,q_auto:best/v1/people/${playerId}/headshot/silo/current.png`;
-}
-
 function getLocalDateString(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -126,89 +122,6 @@ async function fetchAll<T>(
   }
 
   return rows;
-}
-
-/* ─────────────── Player photos: upload → Wikipedia → headshot ─────────────── */
-
-type Photo = {
-  src: string;
-  kind: "action" | "headshot";
-  credit?: string;
-};
-
-const photoCache = new Map<number, Photo>();
-
-function usePlayerPhoto(player?: Player): Photo | null {
-  const [photo, setPhoto] = useState<Photo | null>(null);
-
-  useEffect(() => {
-    if (!player) {
-      setPhoto(null);
-      return;
-    }
-
-    const cached = photoCache.get(player.id);
-    if (cached) {
-      setPhoto(cached);
-      return;
-    }
-
-    let cancelled = false;
-    const fallback: Photo = { src: headshotSilo(player.id), kind: "headshot" };
-
-    // show the headshot immediately, then upgrade if we find something better
-    setPhoto(fallback);
-
-    (async () => {
-      let result: Photo = fallback;
-
-      // 1) a photo you uploaded: public/players/<id>.jpg
-      const local = `/players/${player.id}.jpg`;
-      const hasLocal = await new Promise<boolean>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        img.src = local;
-      });
-
-      if (hasLocal) {
-        result = { src: local, kind: "action" };
-      } else {
-        // 2) lead photo from the player's Wikipedia article (free licence)
-        try {
-          const title = encodeURIComponent(player.name.replace(/ /g, "_"));
-          const res = await fetch(
-            `https://en.wikipedia.org/api/rest_v1/page/summary/${title}`
-          );
-
-          if (res.ok) {
-            const data = await res.json();
-            const thumb: string | undefined = data?.thumbnail?.source;
-            const isBaseball = /baseball/i.test(data?.description ?? "");
-
-            if (data?.type === "standard" && isBaseball && thumb) {
-              result = {
-                src: thumb.replace(/\/\d+px-/, "/960px-"),
-                kind: "action",
-                credit: "Photo: Wikimedia Commons",
-              };
-            }
-          }
-        } catch {
-          // fall through to the headshot
-        }
-      }
-
-      photoCache.set(player.id, result);
-      if (!cancelled) setPhoto(result);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [player]);
-
-  return photo;
 }
 
 /* ───────────────────────── Components ───────────────────────── */
@@ -299,104 +212,6 @@ function GameCard({ game }: { game: MlbGame }) {
           </div>
         ))}
       </div>
-    </Link>
-  );
-}
-
-/** Big photo card: action photo (or headshot fallback) with stats over a gradient. */
-function SpotlightCard({
-  player,
-  team,
-  badge,
-  stats,
-  className = "",
-}: {
-  player: Player;
-  team?: Team;
-  badge: string;
-  stats: [string, string][];
-  className?: string;
-}) {
-  const photo = usePlayerPhoto(player);
-
-  return (
-    <Link
-      href={`/players/${player.id}`}
-      className={`group relative isolate flex flex-col overflow-hidden bg-[#0B1423] text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46] ${className}`}
-    >
-      {photo &&
-        (photo.kind === "action" ? (
-          <img
-            src={photo.src}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover object-[50%_22%] transition duration-700 group-hover:scale-[1.03]"
-          />
-        ) : (
-          <img
-            src={photo.src}
-            alt=""
-            aria-hidden="true"
-            className="absolute bottom-0 right-[6%] h-[90%] w-auto object-contain transition duration-700 group-hover:scale-[1.03]"
-          />
-        ))}
-
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0B1423] via-[#0B1423]/55 to-[#0B1423]/5" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0B1423]/70 via-transparent to-transparent" />
-
-      <div className="relative z-10 flex flex-1 flex-col justify-between p-6 md:p-8">
-        <div className="flex items-start justify-between gap-4">
-          <span className="bg-[#D85F46] px-3 py-1.5 text-[0.7rem] font-bold uppercase tracking-[0.14em]">
-            {badge}
-          </span>
-          {team && (
-            <img
-              src={teamLogo(team.id)}
-              alt=""
-              aria-hidden="true"
-              className="h-14 w-14 object-contain drop-shadow-lg"
-            />
-          )}
-        </div>
-
-        <div>
-          <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[#59B3AD]">
-            {team?.name ?? "Free Agent"}
-            {player.position ? ` · ${player.position}` : ""}
-          </p>
-
-          <h3 className="mt-2 text-4xl font-black leading-[0.95] tracking-tight sm:text-5xl">
-            {player.name}
-          </h3>
-
-          <div
-            className="mt-6 grid gap-4 border-t border-white/20 pt-5"
-            style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}
-          >
-            {stats.map(([label, value]) => (
-              <div key={label}>
-                <p className="font-mono text-2xl font-bold sm:text-3xl">
-                  {value}
-                </p>
-                <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[#59B3AD]">
-                  {label}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 flex items-center justify-between">
-            <span className="text-sm font-semibold text-white/75 transition group-hover:text-white">
-              View profile →
-            </span>
-            {photo?.credit && (
-              <span className="text-[0.65rem] text-white/40">{photo.credit}</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="absolute bottom-0 left-0 z-10 h-1 w-0 bg-[#D85F46] transition-all duration-300 group-hover:w-full" />
     </Link>
   );
 }
@@ -786,6 +601,7 @@ export default function HomePage() {
                 player={featuredPlayer}
                 team={featuredTeam}
                 badge="Player spotlight · OPS leader"
+                action="swing"
                 stats={[
                   ["AVG", formatAverage(featuredStat.batting_avg)],
                   ["OPS", formatDecimal(featuredStat.ops)],
@@ -960,6 +776,11 @@ export default function HomePage() {
                 player={topPlayer}
                 team={topTeam}
                 badge={`${selectedLeaders.description} leader`}
+                action={
+                  leaderTab === "ERA" || leaderTab === "Strikeouts"
+                    ? "pitching"
+                    : "swing"
+                }
                 stats={[
                   [selectedLeaders.label, selectedLeaders.value(topStat)],
                   ["Games", formatNumber(topStat.games)],
