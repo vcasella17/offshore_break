@@ -691,56 +691,99 @@ function LiveAtBat({
           </div>
         </div>
 
-        <div className="border-t border-[#E8E1D7] bg-[#F4EEE5] px-6 py-6 md:px-8">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+        <div className="border-t border-[#E8E1D7] bg-[#F4EEE5] px-6 py-5 md:px-8">
+          <div className="grid items-center gap-6 md:grid-cols-[1fr_230px]">
+            <div className="min-w-0">
               <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#77736C]">
                 Runners on base
               </div>
-              <div className="mt-1 text-xs font-semibold text-[#1A2842]">
-                {Object.values(runners).some(Boolean) ? "Traffic on the bases" : "Bases empty"}
-              </div>
-            </div>
 
-            {lastEvent && (
-              <div className="text-left sm:max-w-md sm:text-right">
-                <div className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color }}>
-                  {lastEvent}
-                </div>
-                {description && (
-                  <div className="mt-1 text-xs leading-5 text-[#77736C]">
-                    {description}
+              <div className="mt-1 text-sm font-bold text-[#1A2842]">
+                {Object.values(runners).some(Boolean)
+                  ? "Runner traffic"
+                  : "Bases empty"}
+              </div>
+
+              {lastEvent && (
+                <div className="mt-5 border-l-2 pl-3" style={{ borderColor: color }}>
+                  <div
+                    className="text-[10px] font-bold uppercase tracking-[0.18em]"
+                    style={{ color }}
+                  >
+                    {lastEvent}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
 
-          <div className="mx-auto mt-5 h-44 w-56">
-            <div className="relative h-full w-full">
-              <div className="absolute left-1/2 top-[16%] h-12 w-12 -translate-x-1/2 rotate-45 border-2 bg-white shadow-sm" style={{ borderColor: runners.second ? color : "#D8D1C7", backgroundColor: runners.second ? color : "#FFFFFF" }} />
-
-              <div className="absolute left-[24%] top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 bg-white shadow-sm" style={{ borderColor: runners.third ? color : "#D8D1C7", backgroundColor: runners.third ? color : "#FFFFFF" }} />
-
-              <div className="absolute left-[76%] top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 bg-white shadow-sm" style={{ borderColor: runners.first ? color : "#D8D1C7", backgroundColor: runners.first ? color : "#FFFFFF" }} />
-
-              <div
-                className="absolute bottom-[7%] left-1/2 h-9 w-11 -translate-x-1/2 border-2 bg-white shadow-sm"
-                style={{
-                  borderColor: color,
-                  clipPath: "polygon(50% 0%, 100% 42%, 78% 100%, 22% 100%, 0% 42%)",
-                }}
-              />
-
-              <div className="absolute left-1/2 top-[28%] h-[42%] w-[1px] -translate-x-1/2 bg-[#1A2842]/10" />
-              <div className="absolute left-[34%] top-[49%] h-[1px] w-[32%] bg-[#1A2842]/10" />
+                  {description && (
+                    <div className="mt-1 max-w-xl text-xs leading-5 text-[#77736C]">
+                      {description}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {Object.values(runners).some(Boolean) && (
-                <div
-                  className="absolute bottom-0 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full"
-                  style={{ backgroundColor: color, boxShadow: `0 0 0 4px ${color}22` }}
-                />
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {runners.first && (
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#1A2842]">
+                      1B occupied
+                    </span>
+                  )}
+                  {runners.second && (
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#1A2842]">
+                      2B occupied
+                    </span>
+                  )}
+                  {runners.third && (
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#1A2842]">
+                      3B occupied
+                    </span>
+                  )}
+                </div>
               )}
+            </div>
+
+            <div className="mx-auto h-40 w-40">
+              <div className="relative h-full w-full">
+                {/* Second base */}
+                <div
+                  className="absolute left-1/2 top-[7%] h-10 w-10 -translate-x-1/2 rotate-45 border-2 shadow-sm"
+                  style={{
+                    borderColor: runners.second ? color : "#D8D1C7",
+                    backgroundColor: runners.second ? color : "#FFFFFF",
+                  }}
+                />
+
+                {/* Third base */}
+                <div
+                  className="absolute left-[18%] top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 shadow-sm"
+                  style={{
+                    borderColor: runners.third ? color : "#D8D1C7",
+                    backgroundColor: runners.third ? color : "#FFFFFF",
+                  }}
+                />
+
+                {/* First base */}
+                <div
+                  className="absolute left-[82%] top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 shadow-sm"
+                  style={{
+                    borderColor: runners.first ? color : "#D8D1C7",
+                    backgroundColor: runners.first ? color : "#FFFFFF",
+                  }}
+                />
+
+                {/* Home plate */}
+                <div
+                  className="absolute bottom-[5%] left-1/2 h-8 w-10 -translate-x-1/2 border-2 bg-white shadow-sm"
+                  style={{
+                    borderColor: color,
+                    clipPath:
+                      "polygon(50% 0%, 100% 42%, 78% 100%, 22% 100%, 0% 42%)",
+                  }}
+                />
+
+                <div className="absolute left-1/2 top-[24%] h-[45%] w-px -translate-x-1/2 bg-[#1A2842]/10" />
+                <div className="absolute left-[31%] top-1/2 h-px w-[38%] -translate-y-1/2 bg-[#1A2842]/10" />
+              </div>
             </div>
           </div>
         </div>
@@ -826,6 +869,7 @@ function LiveContextMetrics({
             />
             Live context
           </div>
+
           <h2 className="mt-1 text-xl font-bold text-[#1A2842]">
             Win Probability & Leverage
           </h2>
@@ -842,68 +886,94 @@ function LiveContextMetrics({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-[#DED7CC] bg-white">
-        <div className="grid md:grid-cols-[1fr_1.4fr_1fr]">
-          <div className="border-b border-[#E8E1D7] p-5 md:border-b-0 md:border-r">
-            <div className="flex items-center gap-3">
-              <img
-                src={logoUrl(away.id)}
-                alt=""
-                className="h-8 w-8 object-contain"
-              />
-              <div className="min-w-0">
-                <div className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-[#77736C]">
-                  {away.abbreviation}
-                </div>
-                <div className="mt-1 font-mono text-2xl font-black text-[#1A2842]">
-                  {awayWinProbability.toFixed(0)}%
-                </div>
+        <div className="grid md:grid-cols-[0.85fr_1.8fr_0.85fr_0.95fr]">
+          {/* Away probability */}
+          <div className="flex items-center gap-3 border-b border-[#E8E1D7] p-5 md:border-b-0 md:border-r">
+            <img
+              src={logoUrl(away.id)}
+              alt=""
+              className="h-9 w-9 shrink-0 object-contain"
+            />
+
+            <div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B867D]">
+                {away.abbreviation}
+              </div>
+
+              <div className="mt-0.5 font-mono text-3xl font-black leading-none text-[#1A2842]">
+                {awayWinProbability.toFixed(0)}%
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col justify-center p-5">
-            <div className="flex items-center justify-between gap-3 text-[9px] font-bold uppercase tracking-[0.14em] text-[#8B867D]">
+          {/* Probability */}
+          <div className="border-b border-[#E8E1D7] p-5 md:border-b-0 md:border-r">
+            <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B867D]">
               <span>{away.abbreviation}</span>
-              <span>Win probability</span>
+              <span className="text-[#B0AAA1]">Win probability</span>
               <span>{home.abbreviation}</span>
             </div>
 
-            <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-[#E8E1D7]">
-              <div
-                className="h-full transition-all duration-500"
-                style={{
-                  width: `${awayWinProbability}%`,
-                  backgroundColor: teamColor(away.id),
-                }}
-              />
-              <div
-                className="h-full transition-all duration-500"
-                style={{
-                  width: `${homeWinProbability}%`,
-                  backgroundColor: teamColor(home.id),
-                }}
-              />
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#E8E1D7]">
+              <div className="flex h-full w-full">
+                <div
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${awayWinProbability}%`,
+                    backgroundColor: teamColor(away.id),
+                  }}
+                />
+
+                <div
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${homeWinProbability}%`,
+                    backgroundColor: teamColor(home.id),
+                  }}
+                />
+              </div>
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-[#77736C]">
+            <div className="mt-2 flex items-center justify-between font-mono text-[10px] font-semibold text-[#77736C]">
               <span>{awayWinProbability.toFixed(1)}%</span>
               <span>{homeWinProbability.toFixed(1)}%</span>
             </div>
           </div>
 
-          <div className="border-t border-[#E8E1D7] p-5 md:border-l md:border-t-0">
-            <div className="flex items-center justify-between gap-4">
+          {/* Home probability */}
+          <div className="flex items-center justify-end gap-3 border-b border-[#E8E1D7] p-5 text-right md:border-b-0 md:border-r">
+            <div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B867D]">
+                {home.abbreviation}
+              </div>
+
+              <div className="mt-0.5 font-mono text-3xl font-black leading-none text-[#1A2842]">
+                {homeWinProbability.toFixed(0)}%
+              </div>
+            </div>
+
+            <img
+              src={logoUrl(home.id)}
+              alt=""
+              className="h-9 w-9 shrink-0 object-contain"
+            />
+          </div>
+
+          {/* Leverage */}
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B867D]">
                   Leverage
                 </div>
-                <div className="mt-1 font-mono text-2xl font-black text-[#1A2842]">
+
+                <div className="mt-0.5 font-mono text-3xl font-black leading-none text-[#1A2842]">
                   {leverage === null ? "—" : leverage.toFixed(2)}
                 </div>
               </div>
 
               <span
-                className={`rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${
+                className={`mt-0.5 rounded-full px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] ${
                   leverageLabel === "Critical"
                     ? "bg-[#D85F46] text-white"
                     : leverageLabel === "High"
@@ -917,16 +987,21 @@ function LiveContextMetrics({
               </span>
             </div>
 
-            <div className="mt-4 text-xs leading-5 text-[#77736C]">
+            <div className="mt-3 text-[10px] leading-4 text-[#77736C]">
               {baseState || "Bases empty"} · {outs}{" "}
               {outs === 1 ? "out" : "outs"} · {balls}-{strikes}
             </div>
           </div>
         </div>
 
-        <div className="border-t border-[#E8E1D7] bg-[#F4EEE5] px-5 py-3 text-[10px] leading-5 text-[#77736C]">
-          {battingTeam.abbreviation} batting · MLB game-context metrics update
-          with the current score, inning, outs, runners, and count.
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-[#E8E1D7] bg-[#F4EEE5] px-5 py-3 text-[9px] leading-5 text-[#77736C]">
+          <span>
+            {battingTeam.abbreviation} batting · MLB game-context metrics
+          </span>
+
+          <span>
+            {inning} · {outs} {outs === 1 ? "out" : "outs"} · {balls}-{strikes}
+          </span>
         </div>
       </div>
     </section>
