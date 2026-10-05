@@ -16,6 +16,27 @@ type Pitcher = {
   link?: string;
 };
 
+type LiveRunner = {
+  id: number;
+  fullName: string;
+};
+
+type GameContextMetrics = {
+  awayWinProbability?: number;
+  homeWinProbability?: number;
+  leverageIndex?: number;
+};
+
+type WinProbabilityPoint = {
+  about?: {
+    atBatIndex?: number;
+    inning?: number;
+  };
+  awayTeamWinProbability?: number;
+  homeTeamWinProbability?: number;
+  leverageIndex?: number;
+};
+
 type CurrentPlay = {
   matchup?: {
     batter?: {
@@ -32,6 +53,12 @@ type CurrentPlay = {
     balls: number;
     strikes: number;
     outs: number;
+  };
+
+  result?: {
+    event?: string;
+    description?: string;
+    rbi?: number;
   };
 
   runners?: Array<{
@@ -88,7 +115,15 @@ type MlbGameFeed = {
       currentInning?: number;
       currentInningOrdinal?: string;
       inningState?: string;
+      isTopInning?: boolean;
       scheduledInnings?: number;
+
+      offense?: {
+        batter?: LiveRunner;
+        first?: LiveRunner;
+        second?: LiveRunner;
+        third?: LiveRunner;
+      };
 
       teams: {
         away: {
@@ -168,6 +203,8 @@ type MlbBoxscoreTeam = {
   };
 
   pitchers?: number[];
+  battingOrder?: number[];
+  batters?: number[];
 
   players?: Record<
     string,
@@ -231,12 +268,97 @@ async function getGame(gamePk: string): Promise<MlbGameFeed | null> {
   }
 }
 
+async function getGameContext(
+  gamePk: string
+): Promise<GameContextMetrics | null> {
+  try {
+    const response = await fetch(
+      `https://statsapi.mlb.com/api/v1/game/${gamePk}/contextMetrics`,
+      {
+        next: {
+          revalidate: 15,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function getWinProbability(
+  gamePk: string
+): Promise<WinProbabilityPoint | null> {
+  try {
+    const response = await fetch(
+      `https://statsapi.mlb.com/api/v1/game/${gamePk}/winProbability`,
+      {
+        next: {
+          revalidate: 15,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const points = Array.isArray(data) ? data : [];
+    return points.length > 0 ? points[points.length - 1] : null;
+  } catch {
+    return null;
+  }
+}
+
 function logoUrl(teamId: number) {
   return `https://www.mlbstatic.com/team-logos/${teamId}.svg`;
 }
 
 function headshotUrl(playerId: number) {
   return `https://img.mlbstatic.com/mlb-photos/image/upload/w_80,q_auto:good/v1/people/${playerId}/headshot/67/current`;
+}
+
+const TEAM_PRIMARY_COLORS: Record<number, string> = {
+  108: "#BA0021", // Angels
+  109: "#A71930", // Diamondbacks
+  110: "#DF4601", // Orioles
+  111: "#BD3039", // Red Sox
+  112: "#0E3386", // Cubs
+  113: "#C6011F", // Reds
+  114: "#00385D", // Guardians
+  115: "#33006F", // Rockies
+  116: "#0C2340", // Tigers
+  117: "#002D62", // Astros
+  118: "#004687", // Royals
+  119: "#005A9C", // Dodgers
+  120: "#AB0003", // Nationals
+  121: "#002D72", // Mets
+  133: "#003831", // Athletics
+  134: "#27251F", // Pirates
+  135: "#2F241D", // Padres
+  136: "#0C2C56", // Mariners
+  137: "#FD5A1E", // Giants
+  138: "#C41E3A", // Cardinals
+  139: "#092C5C", // Rays
+  140: "#003278", // Rangers
+  141: "#134A8E", // Blue Jays
+  142: "#002B5C", // Twins
+  143: "#E81828", // Phillies
+  144: "#CE1141", // Braves
+  145: "#27251F", // White Sox
+  146: "#00A3E0", // Marlins
+  147: "#0C2340", // Yankees
+  158: "#12284B", // Brewers
+};
+
+function teamColor(teamId: number) {
+  return TEAM_PRIMARY_COLORS[teamId] ?? "#1A2842";
 }
 
 function formatDate(dateTime?: string) {
@@ -327,45 +449,48 @@ function getInningText(feed: MlbGameFeed) {
   return ordinal;
 }
 
-function getBaseRunners(currentPlay: CurrentPlay) {
+function getBaseRunners(feed: MlbGameFeed) {
+  const offense = feed.liveData.linescore?.offense;
+
+  if (offense) {
+    return {
+      first: Boolean(offense.first),
+      second: Boolean(offense.second),
+      third: Boolean(offense.third),
+    };
+  }
+
+  const currentPlay = feed.liveData.plays?.currentPlay;
   const occupied = {
     first: false,
     second: false,
     third: false,
   };
 
-  for (const runner of currentPlay.runners ?? []) {
+  for (const runner of currentPlay?.runners ?? []) {
     const start = runner.movement?.start;
     const end = runner.movement?.end;
 
-    if (end === "1B") {
-      occupied.first = true;
-    }
+    if (end === "1B") occupied.first = true;
+    if (end === "2B") occupied.second = true;
+    if (end === "3B") occupied.third = true;
 
-    if (end === "2B") {
-      occupied.second = true;
-    }
-
-    if (end === "3B") {
-      occupied.third = true;
-    }
-
-    if (start === "1B" && end === "2B") {
-      occupied.first = false;
-      occupied.second = true;
-    }
-
-    if (start === "2B" && end === "3B") {
-      occupied.second = false;
-      occupied.third = true;
-    }
-
-    if (start === "3B" && end === "H") {
-      occupied.third = false;
-    }
+    if (start === "1B" && end === "2B") occupied.first = false;
+    if (start === "2B" && end === "3B") occupied.second = false;
+    if (start === "3B" && end === "H") occupied.third = false;
   }
 
   return occupied;
+}
+
+function getBattingTeam(feed: MlbGameFeed) {
+  const linescore = feed.liveData.linescore;
+
+  if (linescore?.isTopInning === true) return feed.gameData.teams.away;
+  if (linescore?.isTopInning === false) return feed.gameData.teams.home;
+
+  const state = linescore?.inningState?.toLowerCase() ?? "";
+  return state.includes("top") ? feed.gameData.teams.away : feed.gameData.teams.home;
 }
 
 function TeamHeader({
@@ -431,34 +556,39 @@ function LiveAtBat({
 }) {
   const currentPlay = feed.liveData.plays?.currentPlay;
 
-  if (!currentPlay) {
-    return null;
-  }
+  if (!currentPlay) return null;
 
   const batter = currentPlay.matchup?.batter;
   const pitcher = currentPlay.matchup?.pitcher;
   const count = currentPlay.count;
-
-  const runners = getBaseRunners(currentPlay);
+  const runners = getBaseRunners(feed);
+  const battingTeam = getBattingTeam(feed);
+  const color = teamColor(battingTeam.id);
+  const lastEvent = currentPlay.result?.event;
+  const description = currentPlay.result?.description;
 
   return (
     <section>
       <SectionTitle eyebrow="Live Game" title="At the Plate" />
 
-      <div className="overflow-hidden rounded-3xl border border-[#DED7CC] bg-white">
-        <div className="border-b border-[#E8E1D7] bg-[#1A2842] px-6 py-4 md:px-8">
+      <div
+        className="overflow-hidden rounded-3xl border border-[#DED7CC] bg-white"
+        style={{ borderTopColor: color, borderTopWidth: 3 }}
+      >
+        <div className="bg-[#1A2842] px-6 py-4 md:px-8">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
-                Current At-Bat
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+                Current at-bat
               </div>
 
-              <div className="mt-1 text-lg font-bold text-white">
+              <div className="mt-1 truncate text-lg font-bold text-white">
                 {batter?.fullName ?? "Waiting for batter"}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 rounded-full bg-[#D85F46] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+            <div className="flex shrink-0 items-center gap-2 rounded-full bg-[#D85F46] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
               <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
               Live
             </div>
@@ -473,20 +603,31 @@ function LiveAtBat({
 
             <div className="mt-3 flex items-center gap-4">
               {batter && (
-                <img
-                  src={headshotUrl(batter.id)}
-                  alt=""
-                  className="h-14 w-14 rounded-full bg-[#F4EEE5] object-cover"
-                />
+                <Link href={`/players/${batter.id}`} className="shrink-0">
+                  <img
+                    src={headshotUrl(batter.id)}
+                    alt=""
+                    className="h-14 w-14 rounded-full bg-[#F4EEE5] object-cover ring-2 ring-transparent transition hover:ring-[#D85F46]"
+                  />
+                </Link>
               )}
 
-              <div>
-                <div className="font-bold text-[#1A2842]">
-                  {batter?.fullName ?? "Unknown"}
-                </div>
+              <div className="min-w-0">
+                {batter ? (
+                  <Link
+                    href={`/players/${batter.id}`}
+                    className="font-bold text-[#1A2842] transition hover:text-[#D85F46]"
+                  >
+                    {batter.fullName}
+                  </Link>
+                ) : (
+                  <div className="font-bold text-[#1A2842]">Unknown</div>
+                )}
 
-                <div className="mt-1 text-xs text-[#77736C]">
-                  At the plate
+                <div className="mt-1 flex items-center gap-2 text-xs text-[#77736C]">
+                  <span>{battingTeam.abbreviation ?? battingTeam.teamName}</span>
+                  <span>·</span>
+                  <span>At the plate</span>
                 </div>
               </div>
             </div>
@@ -502,7 +643,7 @@ function LiveAtBat({
                 {count?.balls ?? 0}
               </span>
 
-              <span className="pb-1 text-2xl font-black text-[#D85F46]">
+              <span className="pb-1 text-2xl font-black" style={{ color }}>
                 -
               </span>
 
@@ -512,8 +653,7 @@ function LiveAtBat({
             </div>
 
             <div className="mt-2 text-xs font-semibold text-[#77736C]">
-              {count?.outs ?? 0}{" "}
-              {(count?.outs ?? 0) === 1 ? "out" : "outs"}
+              {count?.outs ?? 0} {(count?.outs ?? 0) === 1 ? "out" : "outs"}
             </div>
           </div>
 
@@ -523,79 +663,270 @@ function LiveAtBat({
             </div>
 
             <div className="mt-3 flex items-center gap-4 md:justify-end">
-              <div className="md:text-right">
-                <div className="font-bold text-[#1A2842]">
-                  {pitcher?.fullName ?? "Unknown"}
-                </div>
+              <div className="min-w-0 md:text-right">
+                {pitcher ? (
+                  <Link
+                    href={`/players/${pitcher.id}`}
+                    className="font-bold text-[#1A2842] transition hover:text-[#D85F46]"
+                  >
+                    {pitcher.fullName}
+                  </Link>
+                ) : (
+                  <div className="font-bold text-[#1A2842]">Unknown</div>
+                )}
 
-                <div className="mt-1 text-xs text-[#77736C]">
-                  On the mound
-                </div>
+                <div className="mt-1 text-xs text-[#77736C]">On the mound</div>
               </div>
 
               {pitcher && (
-                <img
-                  src={headshotUrl(pitcher.id)}
-                  alt=""
-                  className="h-14 w-14 rounded-full bg-[#F4EEE5] object-cover"
-                />
+                <Link href={`/players/${pitcher.id}`} className="shrink-0">
+                  <img
+                    src={headshotUrl(pitcher.id)}
+                    alt=""
+                    className="h-14 w-14 rounded-full bg-[#F4EEE5] object-cover ring-2 ring-transparent transition hover:ring-[#D85F46]"
+                  />
+                </Link>
               )}
             </div>
           </div>
         </div>
 
         <div className="border-t border-[#E8E1D7] bg-[#F4EEE5] px-6 py-6 md:px-8">
-          <div className="flex items-center justify-between">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#77736C]">
-              Runners on Base
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#77736C]">
+                Runners on base
+              </div>
+              <div className="mt-1 text-xs font-semibold text-[#1A2842]">
+                {Object.values(runners).some(Boolean) ? "Traffic on the bases" : "Bases empty"}
+              </div>
             </div>
 
-            <div className="text-xs font-semibold text-[#77736C]">
-              {[
-                runners.first && "1B",
-                runners.second && "2B",
-                runners.third && "3B",
-              ]
-                .filter(Boolean)
-                .join(" · ") || "Bases empty"}
-            </div>
+            {lastEvent && (
+              <div className="text-left sm:max-w-md sm:text-right">
+                <div className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color }}>
+                  {lastEvent}
+                </div>
+                {description && (
+                  <div className="mt-1 text-xs leading-5 text-[#77736C]">
+                    {description}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="mx-auto mt-5 h-32 w-32">
+          <div className="mx-auto mt-5 h-44 w-56">
             <div className="relative h-full w-full">
-              <div
-                className={`absolute left-1/2 top-2 h-9 w-9 -translate-x-1/2 rotate-45 border border-[#1A2842]/20 ${
-                  runners.second ? "bg-[#D85F46]" : "bg-white"
-                }`}
-              />
+              <div className="absolute left-1/2 top-[16%] h-12 w-12 -translate-x-1/2 rotate-45 border-2 bg-white shadow-sm" style={{ borderColor: runners.second ? color : "#D8D1C7", backgroundColor: runners.second ? color : "#FFFFFF" }} />
+
+              <div className="absolute left-[24%] top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 bg-white shadow-sm" style={{ borderColor: runners.third ? color : "#D8D1C7", backgroundColor: runners.third ? color : "#FFFFFF" }} />
+
+              <div className="absolute left-[76%] top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 bg-white shadow-sm" style={{ borderColor: runners.first ? color : "#D8D1C7", backgroundColor: runners.first ? color : "#FFFFFF" }} />
 
               <div
-                className={`absolute bottom-5 left-4 h-9 w-9 rotate-45 border border-[#1A2842]/20 ${
-                  runners.third ? "bg-[#D85F46]" : "bg-white"
-                }`}
+                className="absolute bottom-[7%] left-1/2 h-9 w-11 -translate-x-1/2 border-2 bg-white shadow-sm"
+                style={{
+                  borderColor: color,
+                  clipPath: "polygon(50% 0%, 100% 42%, 78% 100%, 22% 100%, 0% 42%)",
+                }}
               />
 
-              <div
-                className={`absolute bottom-5 right-4 h-9 w-9 rotate-45 border border-[#1A2842]/20 ${
-                  runners.first ? "bg-[#D85F46]" : "bg-white"
-                }`}
+              <div className="absolute left-1/2 top-[28%] h-[42%] w-[1px] -translate-x-1/2 bg-[#1A2842]/10" />
+              <div className="absolute left-[34%] top-[49%] h-[1px] w-[32%] bg-[#1A2842]/10" />
+
+              {Object.values(runners).some(Boolean) && (
+                <div
+                  className="absolute bottom-0 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full"
+                  style={{ backgroundColor: color, boxShadow: `0 0 0 4px ${color}22` }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LiveContextMetrics({
+  feed,
+  context,
+  probability,
+}: {
+  feed: MlbGameFeed;
+  context: GameContextMetrics | null;
+  probability: WinProbabilityPoint | null;
+}) {
+  const linescore = feed.liveData.linescore;
+  const currentPlay = feed.liveData.plays?.currentPlay;
+
+  if (!linescore) return null;
+
+  const away = feed.gameData.teams.away;
+  const home = feed.gameData.teams.home;
+  const battingTeam = getBattingTeam(feed);
+  const battingColor = teamColor(battingTeam.id);
+
+  const awayWinProbability = Math.max(
+    0,
+    Math.min(
+      100,
+      context?.awayWinProbability ??
+        probability?.awayTeamWinProbability ??
+        50
+    )
+  );
+
+  const homeWinProbability = Math.max(
+    0,
+    Math.min(
+      100,
+      context?.homeWinProbability ??
+        probability?.homeTeamWinProbability ??
+        50
+    )
+  );
+
+  const leverage = context?.leverageIndex ?? probability?.leverageIndex ?? null;
+
+  const leverageLabel =
+    leverage === null
+      ? "Unavailable"
+      : leverage < 1
+        ? "Low"
+        : leverage < 2
+          ? "Average"
+          : leverage < 3
+            ? "High"
+            : "Critical";
+
+  const runners = getBaseRunners(feed);
+  const baseState = [
+    runners.first ? "1B" : null,
+    runners.second ? "2B" : null,
+    runners.third ? "3B" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const inning = getInningText(feed) ?? "Game state";
+  const balls = currentPlay?.count?.balls ?? 0;
+  const strikes = currentPlay?.count?.strikes ?? 0;
+  const outs = currentPlay?.count?.outs ?? 0;
+
+  return (
+    <section>
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#59A7A2]">
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: battingColor }}
+            />
+            Live context
+          </div>
+          <h2 className="mt-1 text-xl font-bold text-[#1A2842]">
+            Win Probability & Leverage
+          </h2>
+        </div>
+
+        <div className="hidden text-right sm:block">
+          <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#8B867D]">
+            {inning}
+          </div>
+          <div className="mt-1 text-xs font-semibold text-[#1A2842]">
+            {outs} {outs === 1 ? "out" : "outs"} · {balls}-{strikes}
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-[#DED7CC] bg-white">
+        <div className="grid md:grid-cols-[1fr_1.4fr_1fr]">
+          <div className="border-b border-[#E8E1D7] p-5 md:border-b-0 md:border-r">
+            <div className="flex items-center gap-3">
+              <img
+                src={logoUrl(away.id)}
+                alt=""
+                className="h-8 w-8 object-contain"
               />
-
-              <div className="absolute bottom-0 left-1/2 h-7 w-7 -translate-x-1/2 rotate-45 bg-[#1A2842]" />
-
-              <div className="absolute left-1/2 top-0 -translate-x-1/2 text-[9px] font-bold text-[#77736C]">
-                2B
-              </div>
-
-              <div className="absolute bottom-2 left-0 text-[9px] font-bold text-[#77736C]">
-                3B
-              </div>
-
-              <div className="absolute bottom-2 right-0 text-[9px] font-bold text-[#77736C]">
-                1B
+              <div className="min-w-0">
+                <div className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-[#77736C]">
+                  {away.abbreviation}
+                </div>
+                <div className="mt-1 font-mono text-2xl font-black text-[#1A2842]">
+                  {awayWinProbability.toFixed(0)}%
+                </div>
               </div>
             </div>
           </div>
+
+          <div className="flex flex-col justify-center p-5">
+            <div className="flex items-center justify-between gap-3 text-[9px] font-bold uppercase tracking-[0.14em] text-[#8B867D]">
+              <span>{away.abbreviation}</span>
+              <span>Win probability</span>
+              <span>{home.abbreviation}</span>
+            </div>
+
+            <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-[#E8E1D7]">
+              <div
+                className="h-full transition-all duration-500"
+                style={{
+                  width: `${awayWinProbability}%`,
+                  backgroundColor: teamColor(away.id),
+                }}
+              />
+              <div
+                className="h-full transition-all duration-500"
+                style={{
+                  width: `${homeWinProbability}%`,
+                  backgroundColor: teamColor(home.id),
+                }}
+              />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-[#77736C]">
+              <span>{awayWinProbability.toFixed(1)}%</span>
+              <span>{homeWinProbability.toFixed(1)}%</span>
+            </div>
+          </div>
+
+          <div className="border-t border-[#E8E1D7] p-5 md:border-l md:border-t-0">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8B867D]">
+                  Leverage
+                </div>
+                <div className="mt-1 font-mono text-2xl font-black text-[#1A2842]">
+                  {leverage === null ? "—" : leverage.toFixed(2)}
+                </div>
+              </div>
+
+              <span
+                className={`rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${
+                  leverageLabel === "Critical"
+                    ? "bg-[#D85F46] text-white"
+                    : leverageLabel === "High"
+                      ? "bg-[#1A2842] text-white"
+                      : leverageLabel === "Average"
+                        ? "bg-[#59B3AD]/20 text-[#1A2842]"
+                        : "bg-[#E8E1D7] text-[#77736C]"
+                }`}
+              >
+                {leverageLabel}
+              </span>
+            </div>
+
+            <div className="mt-4 text-xs leading-5 text-[#77736C]">
+              {baseState || "Bases empty"} · {outs}{" "}
+              {outs === 1 ? "out" : "outs"} · {balls}-{strikes}
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-[#E8E1D7] bg-[#F4EEE5] px-5 py-3 text-[10px] leading-5 text-[#77736C]">
+          {battingTeam.abbreviation} batting · MLB game-context metrics update
+          with the current score, inning, outs, runners, and count.
         </div>
       </div>
     </section>
@@ -828,139 +1159,110 @@ function StartingPitchers({
 function BattingBoxScore({
   label,
   team,
+  currentBatterId,
 }: {
   label: string;
   team?: MlbBoxscoreTeam;
+  currentBatterId?: number;
 }) {
-  if (!team?.players) {
-    return null;
-  }
+  if (!team?.players) return null;
 
   const hitters = Object.values(team.players)
-    .filter((player) => player.stats?.batting)
-    .sort((a, b) => {
-      const aOrder = Number(a.battingOrder ?? 999);
-      const bOrder = Number(b.battingOrder ?? 999);
+    .filter(
+      (player) =>
+        Boolean(player.stats?.batting) &&
+        Boolean(player.battingOrder) &&
+        Number(player.battingOrder) % 100 === 0
+    )
+    .sort((a, b) => Number(a.battingOrder ?? 999) - Number(b.battingOrder ?? 999))
+    .slice(0, 9);
 
-      return aOrder - bOrder;
-    });
+  if (hitters.length === 0) return null;
 
-  if (hitters.length === 0) {
-    return null;
-  }
+  const color = teamColor(team.team.id);
 
   return (
     <section>
-      <SectionTitle eyebrow={label} title={`${team.team.name} Batting`} />
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+            {label}
+          </div>
+          <h2 className="mt-1 text-xl font-bold text-[#1A2842]">
+            {team.team.name} Starting Lineup
+          </h2>
+        </div>
+
+        <img src={logoUrl(team.team.id)} alt="" className="h-9 w-9 object-contain" />
+      </div>
 
       <div className="overflow-x-auto rounded-2xl border border-[#DED7CC] bg-white">
-        <table className="w-full min-w-[850px] border-collapse text-sm">
+        <table className="w-full min-w-[780px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-[#E8E1D7] bg-[#F4EEE5]">
-              <th className="sticky left-0 z-10 min-w-[240px] bg-[#F4EEE5] px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-[#77736C]">
+              <th className="sticky left-0 z-10 min-w-[270px] bg-[#F4EEE5] px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] text-[#77736C]">
                 Batter
               </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                AB
-              </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                R
-              </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                H
-              </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                RBI
-              </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                BB
-              </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                SO
-              </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                HR
-              </th>
-
-              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
-                SB
-              </th>
+              {['AB', 'R', 'H', 'RBI', 'BB', 'SO', 'HR', 'SB'].map((stat) => (
+                <th key={stat} className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#77736C]">
+                  {stat}
+                </th>
+              ))}
             </tr>
           </thead>
 
           <tbody>
             {hitters.map((player, index) => {
               const batting = player.stats?.batting;
+              if (!batting) return null;
 
-              if (!batting) {
-                return null;
-              }
+              const isCurrent = player.person.id === currentBatterId;
 
               return (
                 <tr
                   key={player.person.id}
-                  className={`border-b border-[#E8E1D7] last:border-0 ${
-                    index % 2 === 1 ? "bg-[#FCFAF7]" : "bg-white"
-                  }`}
+                  className={`border-b border-[#E8E1D7] last:border-0 ${index % 2 === 1 ? "bg-[#FCFAF7]" : "bg-white"}`}
+                  style={isCurrent ? { boxShadow: `inset 3px 0 0 ${color}` } : undefined}
                 >
                   <td className="sticky left-0 bg-inherit px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={headshotUrl(player.person.id)}
-                        alt=""
-                        className="h-9 w-9 rounded-full bg-[#F4EEE5] object-cover"
-                      />
+                    <Link href={`/players/${player.person.id}`} className="group flex items-center gap-3">
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#F4EEE5]">
+                        <img src={headshotUrl(player.person.id)} alt="" className="h-full w-full object-cover" />
+                        {isCurrent && (
+                          <span className="absolute inset-0 ring-2 ring-inset" style={{ boxShadow: `inset 0 0 0 2px ${color}` }} />
+                        )}
+                      </div>
 
-                      <div>
-                        <div className="font-semibold text-[#1A2842]">
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-[#1A2842] transition group-hover:text-[#D85F46]">
                           {player.person.fullName}
                         </div>
-
-                        <div className="mt-0.5 text-[10px] uppercase tracking-wider text-[#8B867D]">
-                          {player.position?.abbreviation ?? ""}
+                        <div className="mt-0.5 flex items-center gap-2 text-[10px] uppercase tracking-wider text-[#8B867D]">
+                          <span>{player.position?.abbreviation ?? ""}</span>
+                          {isCurrent && <span style={{ color }}>At bat</span>}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   </td>
 
-                  <td className="px-4 py-3 text-center text-[#4F4B45]">
-                    {batting.atBats ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 text-center text-[#4F4B45]">
-                    {batting.runs ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 text-center font-semibold text-[#1A2842]">
-                    {batting.hits ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 text-center text-[#4F4B45]">
-                    {batting.rbi ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 text-center text-[#4F4B45]">
-                    {batting.baseOnBalls ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 text-center text-[#4F4B45]">
-                    {batting.strikeOuts ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 text-center text-[#4F4B45]">
-                    {batting.homeRuns ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 text-center text-[#4F4B45]">
-                    {batting.stolenBases ?? 0}
-                  </td>
+                  {[
+                    batting.atBats,
+                    batting.runs,
+                    batting.hits,
+                    batting.rbi,
+                    batting.baseOnBalls,
+                    batting.strikeOuts,
+                    batting.homeRuns,
+                    batting.stolenBases,
+                  ].map((value, statIndex) => (
+                    <td
+                      key={statIndex}
+                      className={`px-4 py-3 text-center ${statIndex === 2 ? "font-bold text-[#1A2842]" : "text-[#4F4B45]"}`}
+                    >
+                      {value ?? 0}
+                    </td>
+                  ))}
                 </tr>
               );
             })}
@@ -1090,7 +1392,11 @@ export default async function GamePage({
 }) {
   const { id } = await params;
 
-  const game = await getGame(id);
+  const [game, contextMetrics, latestWinProbability] = await Promise.all([
+    getGame(id),
+    getGameContext(id),
+    getWinProbability(id),
+  ]);
 
   if (!game) {
     return (
@@ -1131,7 +1437,7 @@ export default async function GamePage({
   return (
     <main className="min-h-screen bg-[#F8F3EA]">
       {/* Top navigation */}
-      <div className="container-page pt-7">
+      <div className="mx-auto max-w-7xl px-6 pt-7 md:px-10">
         <Link
           href="/games"
           className="text-sm font-semibold text-[#59A7A2] transition hover:text-[#D85F46]"
@@ -1141,7 +1447,7 @@ export default async function GamePage({
       </div>
 
       {/* Game Header */}
-      <section className="container-page pb-10 pt-7 md:pt-10">
+      <section className="mx-auto max-w-7xl px-6 pb-10 pt-7 md:px-10 md:pt-10">
         <div className="overflow-hidden rounded-3xl border border-[#DED7CC] bg-white">
           {/* Status strip */}
           <div className="flex flex-col gap-3 border-b border-[#E8E1D7] bg-[#F4EEE5] px-6 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
@@ -1218,7 +1524,7 @@ export default async function GamePage({
       </section>
 
       {/* Game Information */}
-      <div className="container-page space-y-12 pb-16">
+      <div className="mx-auto max-w-7xl space-y-12 px-6 pb-16 md:px-10">
         {/* Line Score */}
         {linescore && (
           <LineScore
@@ -1231,6 +1537,15 @@ export default async function GamePage({
         {/* Live At-Bat */}
         {status.live && <LiveAtBat feed={game} />}
 
+        {/* Live Win Probability + Leverage */}
+        {status.live && (
+          <LiveContextMetrics
+            feed={game}
+            context={contextMetrics}
+            probability={latestWinProbability}
+          />
+        )}
+
         {/* Starting Pitchers */}
         <StartingPitchers feed={game} />
 
@@ -1238,13 +1553,15 @@ export default async function GamePage({
         {game.liveData.boxscore?.teams && (
           <>
             <BattingBoxScore
-              label="Away Lineup"
+              label="Away"
               team={game.liveData.boxscore.teams.away}
+              currentBatterId={game.liveData.plays?.currentPlay?.matchup?.batter?.id}
             />
 
             <BattingBoxScore
-              label="Home Lineup"
+              label="Home"
               team={game.liveData.boxscore.teams.home}
+              currentBatterId={game.liveData.plays?.currentPlay?.matchup?.batter?.id}
             />
 
             {/* Team Totals */}
