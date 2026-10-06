@@ -1,6 +1,8 @@
+import StadiumViewer from "@/components/StadiumViewer";
+import { STADIUMS, stadiumUrl } from "@/lib/stadiums";
+import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 type Team = {
   id: string;
@@ -18,7 +20,6 @@ type Player = {
 type PlayerStat = {
   player_id: number;
   season: number;
-
   games: number | null;
   at_bats: number | null;
   hits: number | null;
@@ -26,12 +27,10 @@ type PlayerStat = {
   rbi: number | null;
   walks: number | null;
   strikeouts: number | null;
-
   batting_avg: number | null;
   obp: number | null;
   slg: number | null;
   ops: number | null;
-
   innings_pitched: number | null;
   wins: number | null;
   losses: number | null;
@@ -46,24 +45,15 @@ type PlayerStat = {
 type MlbDivision = {
   id: number;
   name: string;
-  league?: {
-    id: number;
-    name: string;
-    abbreviation?: string;
-  };
 };
 
 type MlbTeam = {
   id: number;
   name: string;
-  abbreviation?: string;
-  teamName?: string;
-  shortName?: string;
   division?: MlbDivision;
   league?: {
     id: number;
     name: string;
-    abbreviation?: string;
   };
 };
 
@@ -87,68 +77,38 @@ function headshot(playerId: number) {
 }
 
 function formatAverage(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "—";
-  }
-
+  if (value == null) return "—";
   return value.toFixed(3).replace(/^0/, "");
 }
 
 function formatDecimal(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "—";
-  }
-
+  if (value == null) return "—";
   return value.toFixed(3);
 }
 
 function formatNumber(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "—";
-  }
-
+  if (value == null) return "—";
   return value.toLocaleString();
-}
-
-function formatInnings(value: number | null | undefined) {
-  if (value === null || value === undefined) {
-    return "—";
-  }
-
-  return value.toFixed(1);
 }
 
 function ordinal(value: string | undefined) {
   if (!value) return "";
-
   if (value === "1") return "1st";
   if (value === "2") return "2nd";
   if (value === "3") return "3rd";
-
   return `${value}th`;
 }
-
-/* ============================================================ */
-/* MLB DATA */
-/* ============================================================ */
 
 async function getMlbTeam(teamId: string): Promise<MlbTeam | null> {
   try {
     const response = await fetch(
       `https://statsapi.mlb.com/api/v1/teams/${teamId}?hydrate=division,league,venue`,
-      {
-        next: {
-          revalidate: 300,
-        },
-      }
+      { next: { revalidate: 300 } }
     );
 
-    if (!response.ok) {
-      return null;
-    }
+    if (!response.ok) return null;
 
     const data = await response.json();
-
     return data.teams?.[0] ?? null;
   } catch {
     return null;
@@ -163,28 +123,20 @@ async function getTeamStanding(
   try {
     const response = await fetch(
       `https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season=${season}&standingsTypes=regularSeason`,
-      {
-        next: {
-          revalidate: 300,
-        },
-      }
+      { next: { revalidate: 300 } }
     );
 
-    if (!response.ok) {
-      return null;
-    }
+    if (!response.ok) return null;
 
     const data = await response.json();
 
     for (const record of data.records ?? []) {
       const found = (record.teamRecords ?? []).find(
-        (team: MlbStanding) =>
-          String(team.team.id) === String(teamId)
+        (entry: MlbStanding) =>
+          String(entry.team.id) === String(teamId)
       );
 
-      if (found) {
-        return found;
-      }
+      if (found) return found;
     }
 
     return null;
@@ -193,22 +145,13 @@ async function getTeamStanding(
   }
 }
 
-/* ============================================================ */
-/* PAGE */
-/* ============================================================ */
-
 export default async function TeamPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
   const currentSeason = new Date().getFullYear();
-
-  /*
-   * Load everything simultaneously.
-   */
 
   const [
     { data: teamData },
@@ -260,26 +203,14 @@ export default async function TeamPage({
       .eq("season", currentSeason),
 
     getMlbTeam(id),
-
     getTeamStanding(id),
   ]);
 
-  /*
-   * If the team does not exist in Supabase,
-   * return the Next.js 404 page.
-   */
-
-  if (!teamData) {
-    notFound();
-  }
+  if (!teamData) notFound();
 
   const team = teamData as Team;
   const players = (playersData ?? []) as Player[];
   const stats = (statsData ?? []) as unknown as PlayerStat[];
-
-  /*
-   * Map stats by player ID.
-   */
 
   const statMap = new Map<number, PlayerStat>();
 
@@ -287,107 +218,64 @@ export default async function TeamPage({
     statMap.set(stat.player_id, stat);
   }
 
-  /*
-   * Only players actually belonging to this team.
-   */
-
   const roster = players.filter(
     (player) => String(player.team_id) === String(id)
   );
 
-  /*
-   * Separate hitters and pitchers.
-   */
-
   const hitters = roster.filter((player) => {
     const stat = statMap.get(player.id);
-
-    return (
-      (stat?.at_bats ?? 0) >= 10 &&
-      (stat?.games ?? 0) >= 3
-    );
+    return (stat?.at_bats ?? 0) >= 10 && (stat?.games ?? 0) >= 3;
   });
 
   const pitchers = roster.filter((player) => {
     const stat = statMap.get(player.id);
-
     return (stat?.innings_pitched ?? 0) > 0;
   });
 
-  /*
-   * Top hitter by OPS.
-   */
-
   const topHitter = [...hitters]
-    .filter((player) => {
-      return statMap.get(player.id)?.ops !== null;
-    })
+    .filter((player) => statMap.get(player.id)?.ops != null)
     .sort(
       (a, b) =>
         (statMap.get(b.id)?.ops ?? -Infinity) -
         (statMap.get(a.id)?.ops ?? -Infinity)
     )[0];
 
-  /*
-   * Top pitcher by ERA.
-   */
-
   const topPitcher = [...pitchers]
-    .filter((player) => {
-      return statMap.get(player.id)?.era !== null;
-    })
+    .filter((player) => statMap.get(player.id)?.era != null)
     .sort(
       (a, b) =>
         (statMap.get(a.id)?.era ?? Infinity) -
         (statMap.get(b.id)?.era ?? Infinity)
     )[0];
 
-  /*
-   * Aggregate team statistics.
-   */
-
   const teamHits = hitters.reduce(
-    (total, player) =>
-      total + (statMap.get(player.id)?.hits ?? 0),
+    (total, player) => total + (statMap.get(player.id)?.hits ?? 0),
     0
   );
 
   const teamHomeRuns = hitters.reduce(
-    (total, player) =>
-      total + (statMap.get(player.id)?.home_runs ?? 0),
+    (total, player) => total + (statMap.get(player.id)?.home_runs ?? 0),
     0
   );
 
   const teamRbi = hitters.reduce(
-    (total, player) =>
-      total + (statMap.get(player.id)?.rbi ?? 0),
+    (total, player) => total + (statMap.get(player.id)?.rbi ?? 0),
     0
   );
 
   const teamAtBats = hitters.reduce(
-    (total, player) =>
-      total + (statMap.get(player.id)?.at_bats ?? 0),
+    (total, player) => total + (statMap.get(player.id)?.at_bats ?? 0),
     0
   );
 
-  /*
-   * Team batting average calculated from total hits / total AB.
-   */
-
-  const teamAverage =
-    teamAtBats > 0 ? teamHits / teamAtBats : null;
+  const teamAverage = teamAtBats > 0 ? teamHits / teamAtBats : null;
 
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
-      {/* ====================================================== */}
-      {/* TEAM HERO */}
-      {/* ====================================================== */}
-
+      {/* Team hero */}
       <section className="border-b border-[#1A2842]/15">
         <div className="container-page py-12 md:py-16">
           <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
-            {/* TEAM IDENTITY */}
-
             <div className="flex items-center gap-7">
               <div className="flex h-28 w-28 shrink-0 items-center justify-center border border-[#1A2842]/15 bg-[#F8F3EA] md:h-32 md:w-32">
                 <img
@@ -410,9 +298,7 @@ export default async function TeamPage({
 
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[#687384]">
                   <span>{team.abbreviation}</span>
-
                   <span className="h-1 w-1 rounded-full bg-[#D85F46]" />
-
                   <span>
                     {standing
                       ? `${standing.wins}-${standing.losses}`
@@ -422,11 +308,9 @@ export default async function TeamPage({
                   {standing?.divisionRank && (
                     <>
                       <span className="h-1 w-1 rounded-full bg-[#D85F46]" />
-
                       <span>
                         {ordinal(standing.divisionRank)} in{" "}
-                        {mlbTeam?.division?.name ??
-                          "division"}
+                        {mlbTeam?.division?.name ?? "division"}
                       </span>
                     </>
                   )}
@@ -434,14 +318,11 @@ export default async function TeamPage({
               </div>
             </div>
 
-            {/* QUICK STATS */}
-
             <div className="grid grid-cols-2 border border-[#1A2842]/15 md:grid-cols-3">
               <div className="px-6 py-5">
                 <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
                   Roster
                 </p>
-
                 <p className="mt-2 font-mono text-2xl font-black">
                   {roster.length}
                 </p>
@@ -451,7 +332,6 @@ export default async function TeamPage({
                 <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
                   Season
                 </p>
-
                 <p className="mt-2 font-mono text-2xl font-black">
                   {currentSeason}
                 </p>
@@ -461,7 +341,6 @@ export default async function TeamPage({
                 <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
                   Record
                 </p>
-
                 <p className="mt-2 font-mono text-2xl font-black">
                   {standing
                     ? `${standing.wins}-${standing.losses}`
@@ -473,10 +352,7 @@ export default async function TeamPage({
         </div>
       </section>
 
-      {/* ====================================================== */}
-      {/* TEAM NAVIGATION */}
-      {/* ====================================================== */}
-
+      {/* Page navigation */}
       <div className="border-b border-[#1A2842]/15 bg-[#101A2C] text-white">
         <div className="container-page flex overflow-x-auto">
           <a
@@ -502,20 +378,43 @@ export default async function TeamPage({
         </div>
       </div>
 
-      {/* ====================================================== */}
-      {/* ROSTER */}
-      {/* ====================================================== */}
+      {/* Ballpark */}
+      {STADIUMS[team.abbreviation] && (
+        <section className="border-b border-[#1A2842]/15 bg-[#101A2C] py-10 md:py-14">
+          <div className="container-page">
+            <div className="mb-5 flex items-end justify-between">
+              <div>
+                <p className="text-[0.75rem] font-bold uppercase tracking-[0.22em] text-[#59B3AD]">
+                  Home Field
+                </p>
+                <h2 className="mt-1 text-2xl font-black tracking-[-0.04em] text-white md:text-3xl">
+                  {STADIUMS[team.abbreviation].name}
+                </h2>
+              </div>
 
-      <section
-        id="roster"
-        className="container-page py-12 md:py-16"
-      >
+              <Link
+                href={`/stadiums/${team.abbreviation}`}
+                className="text-sm font-semibold text-white/60 transition hover:text-white"
+              >
+                Full screen →
+              </Link>
+            </div>
+
+            <StadiumViewer
+              modelUrl={stadiumUrl(team.abbreviation)}
+              className="h-[60vh] min-h-[24rem] w-full"
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Roster */}
+      <section id="roster" className="container-page py-12 md:py-16">
         <div className="flex items-end justify-between border-b border-[#1A2842]/20 pb-4">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#D85F46]">
               {team.abbreviation} · {currentSeason}
             </p>
-
             <h2 className="mt-1 text-3xl font-black tracking-[-0.04em]">
               Roster
             </h2>
@@ -526,46 +425,21 @@ export default async function TeamPage({
           </p>
         </div>
 
-        {/* TABLE */}
-
         <div className="mt-6 overflow-hidden border border-[#1A2842]/15">
-          {/* TABLE HEADER */}
-
           <div className="hidden grid-cols-[60px_minmax(280px,1fr)_80px_80px_80px_90px_90px_90px] border-b border-[#1A2842]/15 bg-[#F1EADF] px-5 py-3 md:grid">
-            <p className="text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              #
-            </p>
-
-            <p className="text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              Player
-            </p>
-
-            <p className="text-center text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              Pos
-            </p>
-
-            <p className="text-center text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              G
-            </p>
-
-            <p className="text-center text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              HR
-            </p>
-
-            <p className="text-center text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              AVG
-            </p>
-
-            <p className="text-center text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              OPS
-            </p>
-
-            <p className="text-center text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
-              RBI
-            </p>
+            {["#", "Player", "Pos", "G", "HR", "AVG", "OPS", "RBI"].map(
+              (label, index) => (
+                <p
+                  key={label}
+                  className={`text-[8px] font-black uppercase tracking-[0.16em] text-[#687384] ${
+                    index > 1 ? "text-center" : ""
+                  }`}
+                >
+                  {label}
+                </p>
+              )
+            )}
           </div>
-
-          {/* PLAYERS */}
 
           {roster.map((player, index) => {
             const stat = statMap.get(player.id);
@@ -576,8 +450,6 @@ export default async function TeamPage({
                 href={`/players/${player.id}`}
                 className="group block border-b border-[#1A2842]/10 px-5 py-5 transition last:border-b-0 hover:bg-[#F1EADF]"
               >
-                {/* DESKTOP ROW */}
-
                 <div className="hidden grid-cols-[60px_minmax(280px,1fr)_80px_80px_80px_90px_90px_90px] items-center md:grid">
                   <span className="font-mono text-[10px] text-[#687384]">
                     {index + 1}
@@ -596,7 +468,6 @@ export default async function TeamPage({
                       <p className="truncate text-[14px] font-black transition group-hover:text-[#D85F46]">
                         {player.name}
                       </p>
-
                       <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
                         {player.position ?? "—"}
                       </p>
@@ -606,29 +477,22 @@ export default async function TeamPage({
                   <p className="text-center font-mono text-[11px] font-black text-[#687384]">
                     {player.position ?? "—"}
                   </p>
-
                   <p className="text-center font-mono text-[11px] font-black">
                     {stat?.games ?? "—"}
                   </p>
-
                   <p className="text-center font-mono text-[11px] font-black">
                     {stat?.home_runs ?? "—"}
                   </p>
-
                   <p className="text-center font-mono text-[11px] font-black">
                     {formatAverage(stat?.batting_avg)}
                   </p>
-
                   <p className="text-center font-mono text-[11px] font-black">
                     {formatDecimal(stat?.ops)}
                   </p>
-
                   <p className="text-center font-mono text-[11px] font-black">
                     {stat?.rbi ?? "—"}
                   </p>
                 </div>
-
-                {/* MOBILE ROW */}
 
                 <div className="md:hidden">
                   <div className="flex items-center gap-4">
@@ -644,7 +508,6 @@ export default async function TeamPage({
                       <p className="truncate text-[15px] font-black group-hover:text-[#D85F46]">
                         {player.name}
                       </p>
-
                       <p className="mt-1 text-[8px] font-black uppercase tracking-[0.16em] text-[#687384]">
                         {player.position ?? "—"}
                       </p>
@@ -656,118 +519,64 @@ export default async function TeamPage({
                   </div>
 
                   <div className="mt-5 grid grid-cols-5 border-t border-[#1A2842]/10 pt-4">
-                    <div>
-                      <p className="font-mono text-sm font-black">
-                        {stat?.games ?? "—"}
-                      </p>
-
-                      <p className="mt-1 text-[7px] font-black uppercase tracking-[0.12em] text-[#687384]">
-                        G
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="font-mono text-sm font-black">
-                        {stat?.home_runs ?? "—"}
-                      </p>
-
-                      <p className="mt-1 text-[7px] font-black uppercase tracking-[0.12em] text-[#687384]">
-                        HR
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="font-mono text-sm font-black">
-                        {formatAverage(stat?.batting_avg)}
-                      </p>
-
-                      <p className="mt-1 text-[7px] font-black uppercase tracking-[0.12em] text-[#687384]">
-                        AVG
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="font-mono text-sm font-black">
-                        {formatDecimal(stat?.ops)}
-                      </p>
-
-                      <p className="mt-1 text-[7px] font-black uppercase tracking-[0.12em] text-[#687384]">
-                        OPS
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="font-mono text-sm font-black">
-                        {stat?.rbi ?? "—"}
-                      </p>
-
-                      <p className="mt-1 text-[7px] font-black uppercase tracking-[0.12em] text-[#687384]">
-                        RBI
-                      </p>
-                    </div>
+                    {[
+                      ["G", stat?.games ?? "—"],
+                      ["HR", stat?.home_runs ?? "—"],
+                      ["AVG", formatAverage(stat?.batting_avg)],
+                      ["OPS", formatDecimal(stat?.ops)],
+                      ["RBI", stat?.rbi ?? "—"],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <p className="font-mono text-sm font-black">
+                          {value}
+                        </p>
+                        <p className="mt-1 text-[7px] font-black uppercase tracking-[0.12em] text-[#687384]">
+                          {label}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </Link>
             );
           })}
 
-          {/* EMPTY STATE */}
-
           {roster.length === 0 && (
             <div className="px-6 py-16 text-center">
-              <p className="text-sm font-black">
-                No roster data available.
-              </p>
-
+              <p className="text-sm font-black">No roster data available.</p>
               <p className="mt-2 text-xs text-[#687384]">
-                Player assignments have not been loaded for this
-                team yet.
+                Player assignments have not been loaded for this team yet.
               </p>
             </div>
           )}
         </div>
       </section>
 
-      {/* ====================================================== */}
-      {/* TEAM SNAPSHOT */}
-      {/* ====================================================== */}
-
-      <section
-        id="snapshot"
-        className="container-page pb-16"
-      >
+      {/* Team snapshot */}
+      <section id="snapshot" className="container-page pb-16">
         <div className="mb-6 border-b border-[#1A2842]/20 pb-4">
           <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#59B3AD]">
             Team Data
           </p>
-
           <h2 className="mt-1 text-3xl font-black tracking-[-0.04em]">
             Season Snapshot
           </h2>
         </div>
 
         <div className="grid border-l border-t border-[#1A2842]/15 md:grid-cols-3">
-          {/* RECORD */}
-
           <div className="border-b border-r border-[#1A2842]/15 p-7">
             <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
               Record
             </p>
-
             <p className="mt-4 font-mono text-4xl font-black">
-              {standing
-                ? `${standing.wins}-${standing.losses}`
-                : "—"}
+              {standing ? `${standing.wins}-${standing.losses}` : "—"}
             </p>
-
             <p className="mt-2 text-[9px] text-[#687384]">
               {standing?.gamesBack
                 ? `${standing.gamesBack} GB`
                 : "Current season"}
             </p>
           </div>
-
-          {/* TOP HITTER */}
 
           <div className="border-b border-r border-[#1A2842]/15 p-7">
             <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
@@ -782,22 +591,14 @@ export default async function TeamPage({
                 >
                   {topHitter.name}
                 </Link>
-
                 <p className="mt-2 font-mono text-[10px] text-[#687384]">
-                  OPS{" "}
-                  {formatDecimal(
-                    statMap.get(topHitter.id)?.ops
-                  )}
+                  OPS {formatDecimal(statMap.get(topHitter.id)?.ops)}
                 </p>
               </>
             ) : (
-              <p className="mt-4 text-2xl font-black">
-                —
-              </p>
+              <p className="mt-4 text-2xl font-black">—</p>
             )}
           </div>
-
-          {/* TOP PITCHER */}
 
           <div className="border-b border-r border-[#1A2842]/15 p-7">
             <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
@@ -812,129 +613,44 @@ export default async function TeamPage({
                 >
                   {topPitcher.name}
                 </Link>
-
                 <p className="mt-2 font-mono text-[10px] text-[#687384]">
-                  ERA{" "}
-                  {statMap.get(topPitcher.id)?.era?.toFixed(2) ??
-                    "—"}
+                  ERA {statMap.get(topPitcher.id)?.era?.toFixed(2) ?? "—"}
                 </p>
               </>
             ) : (
-              <p className="mt-4 text-2xl font-black">
-                —
-              </p>
+              <p className="mt-4 text-2xl font-black">—</p>
             )}
           </div>
 
-          {/* TEAM HITS */}
-
-          <div className="border-b border-r border-[#1A2842]/15 p-7">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-              Team Hits
-            </p>
-
-            <p className="mt-4 font-mono text-4xl font-black">
-              {formatNumber(teamHits)}
-            </p>
-
-            <p className="mt-2 text-[9px] text-[#687384]">
-              Aggregate PlayerStats
-            </p>
-          </div>
-
-          {/* TEAM HR */}
-
-          <div className="border-b border-r border-[#1A2842]/15 p-7">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-              Home Runs
-            </p>
-
-            <p className="mt-4 font-mono text-4xl font-black">
-              {formatNumber(teamHomeRuns)}
-            </p>
-
-            <p className="mt-2 text-[9px] text-[#687384]">
-              Aggregate PlayerStats
-            </p>
-          </div>
-
-          {/* TEAM AVG */}
-
-          <div className="border-b border-r border-[#1A2842]/15 p-7">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-              Batting Average
-            </p>
-
-            <p className="mt-4 font-mono text-4xl font-black">
-              {formatAverage(teamAverage)}
-            </p>
-
-            <p className="mt-2 text-[9px] text-[#687384]">
-              Hits / At Bats
-            </p>
-          </div>
-
-          {/* TEAM RBI */}
-
-          <div className="border-b border-r border-[#1A2842]/15 p-7">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-              RBI
-            </p>
-
-            <p className="mt-4 font-mono text-4xl font-black">
-              {formatNumber(teamRbi)}
-            </p>
-
-            <p className="mt-2 text-[9px] text-[#687384]">
-              Aggregate PlayerStats
-            </p>
-          </div>
-
-          {/* ROSTER */}
-
-          <div className="border-b border-r border-[#1A2842]/15 p-7">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-              Roster Size
-            </p>
-
-            <p className="mt-4 font-mono text-4xl font-black">
-              {roster.length}
-            </p>
-
-            <p className="mt-2 text-[9px] text-[#687384]">
-              Players in database
-            </p>
-          </div>
-
-          {/* SEASON */}
-
-          <div className="border-b border-r border-[#1A2842]/15 p-7">
-            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
-              Season
-            </p>
-
-            <p className="mt-4 font-mono text-4xl font-black">
-              {currentSeason}
-            </p>
-
-            <p className="mt-2 text-[9px] text-[#687384]">
-              Offshore Break data
-            </p>
-          </div>
+          {[
+            ["Team Hits", formatNumber(teamHits), "Aggregate PlayerStats"],
+            ["Home Runs", formatNumber(teamHomeRuns), "Aggregate PlayerStats"],
+            ["Batting Average", formatAverage(teamAverage), "Hits / At Bats"],
+            ["RBI", formatNumber(teamRbi), "Aggregate PlayerStats"],
+            ["Roster Size", String(roster.length), "Players in database"],
+            ["Season", String(currentSeason), "Offshore Break data"],
+          ].map(([label, value, detail]) => (
+            <div
+              key={label}
+              className="border-b border-r border-[#1A2842]/15 p-7"
+            >
+              <p className="text-[8px] font-black uppercase tracking-[0.18em] text-[#687384]">
+                {label}
+              </p>
+              <p className="mt-4 font-mono text-4xl font-black">{value}</p>
+              <p className="mt-2 text-[9px] text-[#687384]">{detail}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ====================================================== */}
-      {/* FOOTER CTA */}
-      {/* ====================================================== */}
-
+      {/* Footer CTA */}
       <section className="border-t border-[#1A2842]/15 bg-[#1A2842] text-white">
         <div className="container-page flex flex-col justify-between gap-8 py-12 md:flex-row md:items-center">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#59B3AD]">
               Offshore Break
             </p>
-
             <h3 className="mt-2 text-3xl font-black tracking-[-0.04em]">
               Explore the rest of the league.
             </h3>
