@@ -1,12 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import FootballField, { type FieldRowData } from "@/components/FootballField";
 import { formatInnings, headshotSilo, teamLogo } from "@/lib/baseball";
-import { getBirthDate, loadAppraisalContext } from "@/lib/appraisalData";
-import { CONTRACTS } from "@/lib/contracts";
+import { getAppraisalPage } from "@/lib/appraisalPage";
 import {
   MODEL,
-  buildAppraisal,
   formatMoney,
   formatWar,
   type ScenarioKey,
@@ -42,6 +41,51 @@ const VERDICT: Record<Verdict, { label: string; color: string; line: string }> =
   },
 };
 
+/* ───────────────────────── Page title + share preview ───────────────────────── */
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const playerId = Number(id);
+
+  if (!Number.isInteger(playerId)) return { title: "Appraisal not found" };
+
+  const data = await getAppraisalPage(playerId);
+  if (!data) return { title: "Appraisal not found" };
+
+  const { player, appraisal } = data;
+  const title = `${player.name} appraisal`;
+
+  const description = appraisal
+    ? `${player.name} is worth an estimated ${formatMoney(appraisal.blended.mid)} a season${
+        appraisal.marketLine !== null
+          ? ` against ${formatMoney(appraisal.marketLine)} in pay`
+          : ""
+      }. See comparable players, projected value and the full range on Offshore Break.`
+    : `What is ${player.name} worth, and what is he paid? An Offshore Break appraisal.`;
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/* ───────────────────────── Components ───────────────────────── */
+
 function SummaryCard({
   label,
   value,
@@ -67,6 +111,8 @@ function SummaryCard({
   );
 }
 
+/* ───────────────────────── Page ───────────────────────── */
+
 export default async function AppraisalPage({
   params,
 }: {
@@ -76,30 +122,14 @@ export default async function AppraisalPage({
   const playerId = Number(id);
   if (!Number.isInteger(playerId)) notFound();
 
-  const ctx = await loadAppraisalContext();
-  const player = ctx.players.find((p) => p.id === playerId);
-  if (!player) notFound();
+  const data = await getAppraisalPage(playerId);
+  if (!data) notFound();
 
-  const team = player.team_id
-    ? ctx.teams.find((t) => t.id === player.team_id) ?? null
-    : null;
-
-  const birthDate = await getBirthDate(playerId);
-
-  const appraisal = buildAppraisal({
-    season: ctx.season,
-    player,
-    players: ctx.players,
-    stats: ctx.stats,
-    warRows: ctx.warRows,
-    teams: ctx.teams,
-    birthDate,
-    contract: CONTRACTS[playerId] ?? null,
-  });
+  const { ctx, player, team, appraisal } = data;
 
   if (!appraisal) {
     return (
-      <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+      <div className="bg-[#F8F3EA] text-[#1A2842]">
         <div className="container-page py-20">
           <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em] text-[#1F7A74]">
             What&apos;s he worth?
@@ -118,7 +148,7 @@ export default async function AppraisalPage({
             ← Back to player search
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -146,7 +176,7 @@ export default async function AppraisalPage({
   const isPitcher = appraisal.estimate.kind === "pitcher";
 
   return (
-    <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+    <div className="bg-[#F8F3EA] text-[#1A2842]">
       {/* HEADER */}
       <section className="paper-grid border-b border-[#1A2842]/15">
         <div className="container-page py-10 md:py-14">
@@ -164,6 +194,7 @@ export default async function AppraisalPage({
             <div className="relative z-10 max-w-[65%]">
               <div className="flex items-center gap-3">
                 {team && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={teamLogo(team.id)}
                     alt=""
@@ -194,12 +225,24 @@ export default async function AppraisalPage({
               </p>
             </div>
 
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={headshotSilo(player.id)}
               alt=""
               aria-hidden="true"
               className="pointer-events-none absolute bottom-0 right-4 h-[115%] w-auto object-contain"
             />
+          </div>
+
+          {/* the same card people see when this page is shared */}
+          <div className="mt-4 flex justify-end">
+            <a
+              href={`/appraisal/${player.id}/opengraph-image`}
+              download={`${slugify(player.name)}-appraisal.png`}
+              className="border border-[#1A2842]/20 bg-white px-4 py-2 font-mono text-[0.7rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74] transition hover:border-[#D85F46] hover:text-[#D85F46]"
+            >
+              Save share card ↓
+            </a>
           </div>
         </div>
       </section>
@@ -425,6 +468,7 @@ export default async function AppraisalPage({
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-2">
                         {comp.payload.team && (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={teamLogo(comp.payload.team.id)}
                             alt=""
@@ -690,6 +734,6 @@ export default async function AppraisalPage({
           </ul>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

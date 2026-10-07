@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchAll, getThresholds } from "@/lib/baseball";
 
 type Player = {
   id: number;
@@ -38,6 +40,9 @@ type PlayerStat = {
   whip: number | null;
 };
 
+/* a stat row for ANY player, used to build the league comparison pool */
+type LeagueStat = PlayerStat & { player_id: number };
+
 type StatcastStat = {
   season: number;
   batted_ball_events: number | null;
@@ -53,10 +58,45 @@ type StatcastStat = {
 
 type Attribute = {
   label: string;
-  percentile: number;
+  percentile: number | null;
   value: string;
   color: "coral" | "teal" | "blue";
 };
+
+type View = "hitting" | "pitching";
+
+const STAT_COLUMNS =
+  "season, games, at_bats, hits, home_runs, rbi, walks, strikeouts, batting_avg, obp, slg, ops, innings_pitched, wins, losses, earned_runs, hits_allowed, walks_allowed, strikeouts_pitched, era, whip";
+
+const LEAGUE_COLUMNS = `player_id, ${STAT_COLUMNS}`;
+
+/* ───────────────────────── Page title ───────────────────────── */
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const playerId = Number(id);
+
+  if (!Number.isInteger(playerId)) return { title: "Player not found" };
+
+  const { data } = await supabase
+    .from("Player")
+    .select("name, position")
+    .eq("id", playerId)
+    .maybeSingle();
+
+  if (!data) return { title: "Player not found" };
+
+  return {
+    title: data.name,
+    description: `${data.name}${data.position ? ` (${data.position})` : ""}: season stats, league percentiles and Statcast data on Offshore Break.`,
+  };
+}
+
+/* ───────────────────────── Formatting ───────────────────────── */
 
 function formatAverage(value: number | null) {
   if (value === null) return "-";
@@ -68,9 +108,16 @@ function formatNumber(value: number | null) {
   return value.toLocaleString();
 }
 
+/* three decimals: OPS, xSLG, xwOBA */
 function formatDecimal(value: number | null) {
   if (value === null) return "-";
   return value.toFixed(3);
+}
+
+/* two decimals: ERA, WHIP */
+function formatEra(value: number | null) {
+  if (value === null) return "-";
+  return value.toFixed(2);
 }
 
 function formatPercent(value: number | null) {
@@ -83,34 +130,79 @@ function formatInnings(value: number | null) {
   return value.toFixed(1);
 }
 
-function population(
-  stats: PlayerStat[],
-  getter: (stat: PlayerStat) => number | null
+/* 1st, 2nd, 3rd, 4th ... 11th, 12th, 13th ... 21st */
+function ordinal(n: number) {
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`;
+
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+/* ───────────────────────── Math helpers ───────────────────────── */
+
+/** numerator / denominator * scale, or null if either is missing or the denominator is 0 */
+function rate(
+  numerator: number | null | undefined,
+  denominator: number | null | undefined,
+  scale = 1
 ) {
-  return stats
+  if (
+    numerator === null ||
+    numerator === undefined ||
+    denominator === null ||
+    denominator === undefined ||
+    denominator <= 0
+  ) {
+    return null;
+  }
+
+  return (numerator / denominator) * scale;
+}
+
+function population<T>(rows: T[], getter: (row: T) => number | null) {
+  return rows
     .map(getter)
     .filter((value): value is number => value !== null && Number.isFinite(value));
 }
 
+/**
+ * Where a value ranks among a pool of qualified players, 0 to 100.
+ * Same formula as the Compare page, so the numbers match everywhere.
+ * Returns null when there is nothing to compare against.
+ */
 function getPercentile(
   value: number | null,
   values: number[],
   higherIsBetter = true
 ) {
-  if (value === null || values.length === 0) return 0;
+  if (value === null || !Number.isFinite(value) || values.length < 2) {
+    return null;
+  }
 
   const better = values.filter((other) =>
     higherIsBetter ? other < value : other > value
   ).length;
 
   return Math.max(
-    1,
-    Math.min(99, Math.round((better / values.length) * 100))
+    0,
+    Math.min(100, Math.round((better / (values.length - 1)) * 100))
   );
 }
 
+/* ───────────────────────── Components ───────────────────────── */
+
 function Headshot({ playerId }: { playerId: number }) {
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={`https://img.mlbstatic.com/mlb-photos/image/upload/w_500,q_auto:good/v1/people/${playerId}/headshot/67/current`}
       alt=""
@@ -121,6 +213,7 @@ function Headshot({ playerId }: { playerId: number }) {
 
 function TeamLogo({ teamId }: { teamId: string }) {
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={`https://www.mlbstatic.com/team-logos/${teamId}.svg`}
       alt=""
@@ -152,7 +245,7 @@ function AttributeBar({ attribute }: { attribute: Attribute }) {
 
         <div className="text-right">
           <span className="font-mono text-2xl font-black text-white">
-            {attribute.percentile}
+            {attribute.percentile ?? "—"}
           </span>
 
           <span className="ml-1 text-[8px] font-black uppercase tracking-widest text-white/35">
@@ -165,7 +258,7 @@ function AttributeBar({ attribute }: { attribute: Attribute }) {
         <div
           className="absolute inset-y-0 left-0"
           style={{
-            width: `${attribute.percentile}%`,
+            width: `${attribute.percentile ?? 0}%`,
             backgroundColor: color,
           }}
         />
@@ -221,7 +314,7 @@ function StatBlock({
 }: {
   label: string;
   value: string;
-  percentile?: number;
+  percentile?: number | null;
 }) {
   return (
     <div className="border-r border-b border-[#1A2842]/15 px-5 py-5">
@@ -231,21 +324,23 @@ function StatBlock({
         {label}
       </p>
 
-      {percentile !== undefined && percentile > 0 && (
+      {percentile !== undefined && percentile !== null && percentile > 0 && (
         <p className="mt-3 font-mono text-[8px] font-bold text-[#D85F46]">
-          {percentile}th percentile
+          {ordinal(percentile)} percentile
         </p>
       )}
     </div>
   );
 }
 
+/* ───────────────────────── Page ───────────────────────── */
+
 export default async function PlayerPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ season?: string }>;
+  searchParams?: Promise<{ season?: string; view?: string }>;
 }) {
   const { id } = await params;
   const playerId = Number(id);
@@ -267,9 +362,7 @@ export default async function PlayerPage({
 
     supabase
       .from("PlayerStats")
-      .select(
-        "season, games, at_bats, hits, home_runs, rbi, walks, strikeouts, batting_avg, obp, slg, ops, innings_pitched, wins, losses, earned_runs, hits_allowed, walks_allowed, strikeouts_pitched, era, whip"
-      )
+      .select(STAT_COLUMNS)
       .eq("player_id", playerId)
       .order("season", { ascending: false }),
 
@@ -286,7 +379,7 @@ export default async function PlayerPage({
 
   if (!player) {
     return (
-      <main className="min-h-screen bg-[#F8F3EA] px-6 py-20 text-[#1A2842]">
+      <div className="bg-[#F8F3EA] px-6 py-20 text-[#1A2842]">
         <div className="container-wide ">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D85F46]">
             Offshore Break
@@ -301,7 +394,7 @@ export default async function PlayerPage({
             ← Back to players
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -325,163 +418,101 @@ export default async function PlayerPage({
     stats.find((stat) => stat.season === selectedSeason) ?? null;
 
   const statcast =
-    statcastStats.find((row) => row.season === selectedSeason) ?? null;
+    statcastRows === null
+      ? null
+      : (statcastStats.find((row) => row.season === selectedSeason) ?? null);
 
-  const { data: leagueData } = await supabase
-    .from("PlayerStats")
-    .select(
-      "season, games, at_bats, hits, home_runs, rbi, walks, strikeouts, batting_avg, obp, slg, ops, innings_pitched, wins, losses, earned_runs, hits_allowed, walks_allowed, strikeouts_pitched, era, whip"
-    )
-    .eq("season", selectedSeason);
-
-  const leagueStats = (leagueData ?? []) as PlayerStat[];
-
-  const isPitcher = Boolean(
-    current &&
-      (current.innings_pitched !== null ||
-        current.era !== null ||
-        current.strikeouts_pitched !== null)
+  /* ── League pool: every player that season, paged past the 1,000-row cap ── */
+  const leagueStats = await fetchAll<LeagueStat>((from, to) =>
+    supabase
+      .from("PlayerStats")
+      .select(LEAGUE_COLUMNS)
+      .eq("season", selectedSeason)
+      .order("player_id")
+      .range(from, to)
   );
 
-  const games = current?.games ?? null;
+  /* Only qualified players count, so a 1-for-1 September call-up can't skew anything */
+  const { minAb, minIp } = getThresholds(leagueStats);
 
-  const hrPerGame =
-    current?.home_runs !== null &&
-    current?.home_runs !== undefined &&
-    games !== null &&
-    games > 0
-      ? current.home_runs / games
-      : null;
-
-  const rbiPerGame =
-    current?.rbi !== null &&
-    current?.rbi !== undefined &&
-    games !== null &&
-    games > 0
-      ? current.rbi / games
-      : null;
-
-  const bbRate =
-    current?.walks !== null &&
-    current?.walks !== undefined &&
-    current?.at_bats !== null &&
-    current.at_bats > 0
-      ? current.walks / current.at_bats
-      : null;
-
-  const kRate =
-    current?.strikeouts !== null &&
-    current?.strikeouts !== undefined &&
-    current?.at_bats !== null &&
-    current.at_bats > 0
-      ? current.strikeouts / current.at_bats
-      : null;
-
-  const kPer9 =
-    current?.strikeouts_pitched !== null &&
-    current?.strikeouts_pitched !== undefined &&
-    current?.innings_pitched !== null &&
-    current.innings_pitched > 0
-      ? (current.strikeouts_pitched / current.innings_pitched) * 9
-      : null;
-
-  const bbPer9 =
-    current?.walks_allowed !== null &&
-    current?.walks_allowed !== undefined &&
-    current?.innings_pitched !== null &&
-    current.innings_pitched > 0
-      ? (current.walks_allowed / current.innings_pitched) * 9
-      : null;
-
-  const avgPct = getPercentile(
-    current?.batting_avg ?? null,
-    population(leagueStats, (s) => s.batting_avg)
+  const hitterPool = leagueStats.filter((s) => (s.at_bats ?? 0) >= minAb);
+  const pitcherPool = leagueStats.filter(
+    (s) => (s.innings_pitched ?? 0) >= minIp
   );
 
-  const obpPct = getPercentile(
-    current?.obp ?? null,
-    population(leagueStats, (s) => s.obp)
-  );
+  const hitPct = (
+    value: number | null,
+    getter: (s: LeagueStat) => number | null,
+    higherIsBetter = true
+  ) => getPercentile(value, population(hitterPool, getter), higherIsBetter);
 
-  const slgPct = getPercentile(
-    current?.slg ?? null,
-    population(leagueStats, (s) => s.slg)
-  );
+  const pitchPct = (
+    value: number | null,
+    getter: (s: LeagueStat) => number | null,
+    higherIsBetter = true
+  ) => getPercentile(value, population(pitcherPool, getter), higherIsBetter);
 
-  const opsPct = getPercentile(
-    current?.ops ?? null,
-    population(leagueStats, (s) => s.ops)
-  );
+  /* ── Hitter or pitcher? Two-way players get a toggle. ── */
+  const atBats = current?.at_bats ?? 0;
+  const inningsPitched = current?.innings_pitched ?? 0;
+  const hasHitting = atBats > 0;
+  const hasPitching = inningsPitched > 0;
 
-  const hrPct = getPercentile(
-    hrPerGame,
-    population(leagueStats, (s) =>
-      s.home_runs !== null && s.games !== null && s.games > 0
-        ? s.home_runs / s.games
-        : null
-    )
-  );
+  // whichever side has more volume is the default (3 outs per inning vs at-bats),
+  // so a catcher who pitched one inning still shows as a hitter
+  const defaultView: View =
+    hasPitching && (!hasHitting || inningsPitched * 3 > atBats)
+      ? "pitching"
+      : "hitting";
 
-  const rbiPct = getPercentile(
-    rbiPerGame,
-    population(leagueStats, (s) =>
-      s.rbi !== null && s.games !== null && s.games > 0
-        ? s.rbi / s.games
-        : null
-    )
-  );
+  const showViewToggle =
+    hasHitting &&
+    hasPitching &&
+    atBats >= minAb * 0.25 &&
+    inningsPitched >= minIp * 0.25;
 
-  const bbPct = getPercentile(
-    bbRate,
-    population(leagueStats, (s) =>
-      s.walks !== null && s.at_bats !== null && s.at_bats > 0
-        ? s.walks / s.at_bats
-        : null
-    )
-  );
+  const view: View =
+    showViewToggle &&
+    (queryParams.view === "hitting" || queryParams.view === "pitching")
+      ? queryParams.view
+      : defaultView;
 
-  const kAvoidPct = getPercentile(
-    kRate,
-    population(leagueStats, (s) =>
-      s.strikeouts !== null && s.at_bats !== null && s.at_bats > 0
-        ? s.strikeouts / s.at_bats
-        : null
-    ),
-    false
-  );
+  const isPitcher = view === "pitching";
 
-  const eraPct = getPercentile(
-    current?.era ?? null,
-    population(leagueStats, (s) => s.era),
-    false
-  );
+  function profileHref(season: number, nextView: View = view) {
+    return `/players/${player!.id}?season=${season}${
+      showViewToggle ? `&view=${nextView}` : ""
+    }`;
+  }
 
-  const whipPct = getPercentile(
-    current?.whip ?? null,
-    population(leagueStats, (s) => s.whip),
-    false
-  );
+  const qualified = isPitcher ? inningsPitched >= minIp : atBats >= minAb;
 
-  const k9Pct = getPercentile(
-    kPer9,
-    population(leagueStats, (s) =>
-      s.strikeouts_pitched !== null &&
-      s.innings_pitched !== null &&
-      s.innings_pitched > 0
-        ? (s.strikeouts_pitched / s.innings_pitched) * 9
-        : null
-    )
-  );
+  /* ── Rates ── */
+  const hrPerGame = rate(current?.home_runs, current?.games);
+  const rbiPerGame = rate(current?.rbi, current?.games);
+  const bbRate = rate(current?.walks, current?.at_bats);
+  const kRate = rate(current?.strikeouts, current?.at_bats);
+  const kPer9 = rate(current?.strikeouts_pitched, current?.innings_pitched, 9);
+  const bbPer9 = rate(current?.walks_allowed, current?.innings_pitched, 9);
 
-  const bb9Pct = getPercentile(
+  /* ── Percentiles (hitters vs qualified hitters, pitchers vs qualified pitchers) ── */
+  const avgPct = hitPct(current?.batting_avg ?? null, (s) => s.batting_avg);
+  const obpPct = hitPct(current?.obp ?? null, (s) => s.obp);
+  const slgPct = hitPct(current?.slg ?? null, (s) => s.slg);
+  const opsPct = hitPct(current?.ops ?? null, (s) => s.ops);
+  const hrPct = hitPct(hrPerGame, (s) => rate(s.home_runs, s.games));
+  const rbiPct = hitPct(rbiPerGame, (s) => rate(s.rbi, s.games));
+  const bbPct = hitPct(bbRate, (s) => rate(s.walks, s.at_bats));
+  const kAvoidPct = hitPct(kRate, (s) => rate(s.strikeouts, s.at_bats), false);
+
+  const eraPct = pitchPct(current?.era ?? null, (s) => s.era, false);
+  const whipPct = pitchPct(current?.whip ?? null, (s) => s.whip, false);
+  const k9Pct = pitchPct(kPer9, (s) =>
+    rate(s.strikeouts_pitched, s.innings_pitched, 9)
+  );
+  const bb9Pct = pitchPct(
     bbPer9,
-    population(leagueStats, (s) =>
-      s.walks_allowed !== null &&
-      s.innings_pitched !== null &&
-      s.innings_pitched > 0
-        ? (s.walks_allowed / s.innings_pitched) * 9
-        : null
-    ),
+    (s) => rate(s.walks_allowed, s.innings_pitched, 9),
     false
   );
 
@@ -540,13 +571,13 @@ export default async function PlayerPage({
     {
       label: "ERA",
       percentile: eraPct,
-      value: formatDecimal(current?.era ?? null),
+      value: formatEra(current?.era ?? null),
       color: "coral",
     },
     {
       label: "WHIP",
       percentile: whipPct,
-      value: formatDecimal(current?.whip ?? null),
+      value: formatEra(current?.whip ?? null),
       color: "teal",
     },
     {
@@ -563,18 +594,18 @@ export default async function PlayerPage({
     },
     {
       label: "INNINGS",
-      percentile: getPercentile(
+      percentile: pitchPct(
         current?.innings_pitched ?? null,
-        population(leagueStats, (s) => s.innings_pitched)
+        (s) => s.innings_pitched
       ),
       value: formatInnings(current?.innings_pitched ?? null),
       color: "blue",
     },
     {
       label: "STRIKEOUTS",
-      percentile: getPercentile(
+      percentile: pitchPct(
         current?.strikeouts_pitched ?? null,
-        population(leagueStats, (s) => s.strikeouts_pitched)
+        (s) => s.strikeouts_pitched
       ),
       value: formatNumber(current?.strikeouts_pitched ?? null),
       color: "blue",
@@ -584,7 +615,7 @@ export default async function PlayerPage({
   const attributes = isPitcher ? pitchingAttributes : hittingAttributes;
 
   return (
-    <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+    <div className="bg-[#F8F3EA] text-[#1A2842]">
       <section className="overflow-hidden bg-[#101A2C] text-white">
         <div className="container-wide ">
           <div className="grid min-h-[430px] lg:grid-cols-[330px_1fr_280px]">
@@ -647,6 +678,29 @@ export default async function PlayerPage({
                 )}
               </div>
 
+              {showViewToggle && (
+                <div
+                  className="mt-4 flex gap-1"
+                  role="group"
+                  aria-label="Choose hitting or pitching stats"
+                >
+                  {(["hitting", "pitching"] as const).map((option) => (
+                    <Link
+                      key={option}
+                      href={profileHref(selectedSeason, option)}
+                      aria-current={view === option ? "true" : undefined}
+                      className={`border px-4 py-2 text-[9px] font-black uppercase tracking-[0.15em] transition ${
+                        view === option
+                          ? "border-[#59B3AD] bg-[#59B3AD] text-[#0B1423]"
+                          : "border-white/15 text-white/50 hover:border-white/30 hover:text-white"
+                      }`}
+                    >
+                      {option}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-8 grid grid-cols-4 border-y border-white/10">
                 {!isPitcher ? (
                   <>
@@ -687,7 +741,7 @@ export default async function PlayerPage({
                   <>
                     <div className="border-r border-white/10 py-4">
                       <p className="font-mono text-2xl font-black">
-                        {formatDecimal(current?.era ?? null)}
+                        {formatEra(current?.era ?? null)}
                       </p>
                       <p className="mt-1 text-[8px] font-black uppercase tracking-widest text-white/30">
                         ERA
@@ -695,7 +749,7 @@ export default async function PlayerPage({
                     </div>
                     <div className="border-r border-white/10 py-4 pl-4">
                       <p className="font-mono text-2xl font-black">
-                        {formatDecimal(current?.whip ?? null)}
+                        {formatEra(current?.whip ?? null)}
                       </p>
                       <p className="mt-1 text-[8px] font-black uppercase tracking-widest text-white/30">
                         WHIP
@@ -739,7 +793,7 @@ export default async function PlayerPage({
                   return (
                     <Link
                       key={stat.season}
-                      href={`/players/${player.id}?season=${stat.season}`}
+                      href={profileHref(stat.season)}
                       className={`flex items-center justify-between border px-4 py-3 transition ${
                         active
                           ? "border-[#D85F46] bg-[#D85F46] text-white"
@@ -851,10 +905,17 @@ export default async function PlayerPage({
                   Data Note
                 </p>
                 <p className="mt-2 max-w-3xl text-[10px] leading-5 text-white/35">
-                  Percentiles compare this player against the PlayerStats records
-                  available for the selected season. They are Offshore Break
+                  Percentiles compare this player against qualified{" "}
+                  {isPitcher
+                    ? `pitchers (${minIp}+ IP)`
+                    : `hitters (${minAb}+ AB)`}{" "}
+                  in the {selectedSeason} season. They are Offshore Break
                   league-context percentiles, not official MLB Statcast
                   percentiles.
+                  {!qualified &&
+                    (isPitcher
+                      ? ` ${player.name} has ${formatInnings(current?.innings_pitched ?? null)} IP, below the cutoff, so these rest on a small sample.`
+                      : ` ${player.name} has ${formatNumber(current?.at_bats ?? null)} AB, below the cutoff, so these rest on a small sample.`)}
                 </p>
               </div>
             </div>
@@ -916,12 +977,12 @@ export default async function PlayerPage({
             />
             <StatBlock
               label="ERA"
-              value={formatDecimal(current?.era ?? null)}
+              value={formatEra(current?.era ?? null)}
               percentile={eraPct}
             />
             <StatBlock
               label="WHIP"
-              value={formatDecimal(current?.whip ?? null)}
+              value={formatEra(current?.whip ?? null)}
               percentile={whipPct}
             />
             <StatBlock
@@ -1025,7 +1086,7 @@ export default async function PlayerPage({
                     attribute={{
                       label: "ERA",
                       percentile: eraPct,
-                      value: formatDecimal(current?.era ?? null),
+                      value: formatEra(current?.era ?? null),
                       color: "coral",
                     }}
                   />
@@ -1033,7 +1094,7 @@ export default async function PlayerPage({
                     attribute={{
                       label: "WHIP",
                       percentile: whipPct,
-                      value: formatDecimal(current?.whip ?? null),
+                      value: formatEra(current?.whip ?? null),
                       color: "teal",
                     }}
                   />
@@ -1200,7 +1261,7 @@ export default async function PlayerPage({
             {stats.map((stat) => (
               <Link
                 key={stat.season}
-                href={`/players/${player.id}?season=${stat.season}`}
+                href={profileHref(stat.season)}
                 className={`grid grid-cols-[110px_repeat(5,1fr)] border-b border-[#1A2842]/10 px-4 py-5 text-xs transition hover:bg-white ${
                   stat.season === selectedSeason ? "bg-[#D85F46]/5" : ""
                 }`}
@@ -1210,12 +1271,12 @@ export default async function PlayerPage({
                 <span className="font-bold">{formatAverage(stat.batting_avg)}</span>
                 <span className="font-bold">{formatDecimal(stat.ops)}</span>
                 <span>{formatNumber(stat.home_runs)}</span>
-                <span>{formatDecimal(stat.era)}</span>
+                <span>{formatEra(stat.era)}</span>
               </Link>
             ))}
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

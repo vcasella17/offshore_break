@@ -4,6 +4,7 @@ import Image from "next/image";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://offshore-break.vercel.app"),
   title: {
     default: "Offshore Break",
     template: "%s | Offshore Break",
