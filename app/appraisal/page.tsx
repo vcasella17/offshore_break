@@ -1,10 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import PlayerPicker from "@/components/PlayerPicker";
 import { teamLogo } from "@/lib/baseball";
 import { loadAppraisalContext } from "@/lib/appraisalData";
 import { MODEL, formatMoney, formatWar } from "@/lib/appraisal";
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "The Appraisal",
+  description:
+    "What every player is worth and what he is paid: comparable players, precedent contracts, and a discounted cash flow of his future production.",
+};
 
 type BoardRow = {
   id: number;
@@ -98,7 +106,17 @@ export default async function AppraisalHome({
   const ctx = await loadAppraisalContext();
   const teamMap = new Map(ctx.teams.map((team) => [team.id, team]));
   const playerMap = new Map(ctx.players.map((player) => [player.id, player]));
-  const sortedPlayers = [...ctx.players].sort((a, b) => a.name.localeCompare(b.name));
+
+  /* The list the search box uses: name + team, A to Z */
+  const pickerPlayers = [...ctx.players]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((player) => ({
+      id: player.id,
+      name: player.name,
+      team: player.team_id
+        ? (teamMap.get(player.team_id)?.abbreviation ?? null)
+        : null,
+    }));
 
   /* Bargain Board: production value minus salary, latest season with data */
   const warSeason = ctx.warRows.length
@@ -136,7 +154,7 @@ export default async function AppraisalHome({
     .slice(0, 10);
 
   return (
-    <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+    <div className="bg-[#F8F3EA] text-[#1A2842]">
       {/* HEADER */}
       <section className="paper-grid border-b border-[#1A2842]/15">
         <div className="container-page py-12 md:py-16">
@@ -169,30 +187,11 @@ export default async function AppraisalHome({
           method="GET"
           className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end"
         >
-          <div>
-            <label
-              htmlFor="player"
-              className="mb-2 block font-mono text-[0.75rem] font-bold uppercase tracking-[0.18em] text-[#1F7A74]"
-            >
-              Appraise a player
-            </label>
-            <select
-              id="player"
-              name="player"
-              defaultValue=""
-              className="h-12 w-full border border-[#1A2842]/20 bg-white px-4 text-sm font-bold text-[#1A2842] outline-none transition focus:border-[#D85F46]"
-            >
-              <option value="">Select a player</option>
-              {sortedPlayers.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                  {player.team_id && teamMap.get(player.team_id)
-                    ? ` · ${teamMap.get(player.team_id)!.abbreviation}`
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+          <PlayerPicker
+            players={pickerPlayers}
+            label="Appraise a player"
+            name="player"
+          />
 
           <button
             type="submit"
@@ -248,6 +247,6 @@ export default async function AppraisalHome({
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 }

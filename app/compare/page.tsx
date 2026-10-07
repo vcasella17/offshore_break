@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import PlayerPicker from "@/components/PlayerPicker";
 import { supabase } from "@/lib/supabaseClient";
 import {
   fetchAll,
@@ -56,8 +58,50 @@ type PlayerProfile = {
   stat: PlayerStat | null;
 };
 
+type ComparePageProps = {
+  searchParams: Promise<{ player1?: string; player2?: string }>;
+};
+
 const CORAL = "#D85F46";
 const TEAL_DEEP = "#1F7A74";
+
+/* ───────────────────────── Page title ───────────────────────── */
+
+function toId(value?: string) {
+  const id = value ? Number(value) : NaN;
+  return Number.isFinite(id) ? id : null;
+}
+
+/* A shared link reads "Aaron Judge vs Shohei Ohtani" instead of a generic title */
+export async function generateMetadata({
+  searchParams,
+}: ComparePageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const first = toId(params.player1);
+  const second = toId(params.player2);
+
+  if (first !== null && second !== null) {
+    const { data } = await supabase
+      .from("Player")
+      .select("id, name")
+      .in("id", [first, second]);
+
+    const nameOf = (id: number) =>
+      data?.find((player: { id: number; name: string }) => player.id === id)
+        ?.name;
+
+    const a = nameOf(first);
+    const b = nameOf(second);
+
+    if (a && b) return { title: `${a} vs ${b}` };
+  }
+
+  return {
+    title: "Compare Players",
+    description:
+      "Put two players side by side and compare their production, performance, and Offshore Profile.",
+  };
+}
 
 /* ───────────────────────── Math helpers ───────────────────────── */
 
@@ -270,17 +314,8 @@ function PlayerHeaderCard({
 
 /* ───────────────────────── Page ───────────────────────── */
 
-export default async function ComparePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ player1?: string; player2?: string }>;
-}) {
+export default async function ComparePage({ searchParams }: ComparePageProps) {
   const params = await searchParams;
-
-  const toId = (value?: string) => {
-    const id = value ? Number(value) : NaN;
-    return Number.isFinite(id) ? id : null;
-  };
 
   const player1Id = toId(params.player1);
   const player2Id = toId(params.player2);
@@ -318,7 +353,17 @@ export default async function ComparePage({
   const teams = (teamsData ?? []) as Team[];
   const teamMap = new Map(teams.map((team) => [team.id, team]));
   const statMap = new Map(stats.map((stat) => [stat.player_id, stat]));
-  const sortedPlayers = [...players].sort((a, b) => a.name.localeCompare(b.name));
+
+  /* The list both search boxes share: name + team, A to Z (built once) */
+  const pickerPlayers = [...players]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((player) => ({
+      id: player.id,
+      name: player.name,
+      team: player.team_id
+        ? (teamMap.get(player.team_id)?.abbreviation ?? null)
+        : null,
+    }));
 
   function buildProfile(id: number | null): PlayerProfile | null {
     if (id === null) return null;
@@ -384,11 +429,8 @@ export default async function ComparePage({
   const bothPitchers = pitches(profile1) && pitches(profile2);
   const showOffense = !bothPitchers || hits(profile1) || hits(profile2);
 
-  const selectClass =
-    "h-12 w-full border border-[#1A2842]/20 bg-white px-4 text-sm font-bold text-[#1A2842] outline-none transition";
-
   return (
-    <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+    <div className="bg-[#F8F3EA] text-[#1A2842]">
       {/* HERO */}
       <section className="paper-grid border-b border-[#1A2842]/15">
         <div className="container-page pb-12 pt-12 md:pb-16 md:pt-16">
@@ -432,61 +474,25 @@ export default async function ComparePage({
           method="GET"
           className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-end"
         >
-          <div>
-            <label
-              htmlFor="player1"
-              className="mb-2 block font-mono text-[0.75rem] font-bold uppercase tracking-[0.18em] text-[#1F7A74]"
-            >
-              Player One
-            </label>
-
-            <select
-              id="player1"
-              name="player1"
-              defaultValue={player1Id ?? ""}
-              className={`${selectClass} focus:border-[#D85F46]`}
-            >
-              <option value="">Select player</option>
-              {sortedPlayers.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                  {player.team_id && teamMap.get(player.team_id)
-                    ? ` · ${teamMap.get(player.team_id)!.abbreviation}`
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+          <PlayerPicker
+            players={pickerPlayers}
+            label="Player One"
+            name="player1"
+            defaultValue={player1Id}
+            accent="coral"
+          />
 
           <div className="hidden h-12 items-center justify-center md:flex">
             <span className="text-lg font-black italic text-[#D85F46]">VS</span>
           </div>
 
-          <div>
-            <label
-              htmlFor="player2"
-              className="mb-2 block font-mono text-[0.75rem] font-bold uppercase tracking-[0.18em] text-[#1F7A74]"
-            >
-              Player Two
-            </label>
-
-            <select
-              id="player2"
-              name="player2"
-              defaultValue={player2Id ?? ""}
-              className={`${selectClass} focus:border-[#59B3AD]`}
-            >
-              <option value="">Select player</option>
-              {sortedPlayers.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                  {player.team_id && teamMap.get(player.team_id)
-                    ? ` · ${teamMap.get(player.team_id)!.abbreviation}`
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+          <PlayerPicker
+            players={pickerPlayers}
+            label="Player Two"
+            name="player2"
+            defaultValue={player2Id}
+            accent="teal"
+          />
 
           <button
             type="submit"
@@ -666,6 +672,6 @@ export default async function ComparePage({
           </section>
         </>
       )}
-    </main>
+    </div>
   );
 }

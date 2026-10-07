@@ -70,11 +70,13 @@ type Category = {
   type: "hitting" | "pitching";
   format: "number" | "average" | "decimal" | "innings";
   direction: "high" | "low";
-  /** rate stats and "fewest" stats need a real sample; counting stats don't */
   qualified: boolean;
 };
 
-type Thresholds = { minAb: number; minIp: number };
+type Thresholds = {
+  minAb: number;
+  minIp: number;
+};
 
 const hittingCategories: Category[] = [
   { key: "ops", label: "On-Base Plus Slugging", shortLabel: "OPS", type: "hitting", format: "average", direction: "high", qualified: true },
@@ -100,7 +102,10 @@ const pitchingCategories: Category[] = [
 
 /* ───────────────────────── Helpers ───────────────────────── */
 
-function formatStat(value: number | null | undefined, format: Category["format"]) {
+function formatStat(
+  value: number | null | undefined,
+  format: Category["format"]
+) {
   switch (format) {
     case "average":
       return formatAverage(value);
@@ -113,41 +118,53 @@ function formatStat(value: number | null | undefined, format: Category["format"]
   }
 }
 
-function qualifies(player: PlayerRow, category: Category, t: Thresholds) {
+function qualifies(player: PlayerRow, category: Category, thresholds: Thresholds) {
   const stats = player.stats;
   if (!stats) return false;
 
   if (category.type === "hitting") {
-    return (stats.at_bats ?? 0) >= (category.qualified ? t.minAb : 1);
+    return (stats.at_bats ?? 0) >= (category.qualified ? thresholds.minAb : 1);
   }
 
-  return (stats.innings_pitched ?? 0) >= (category.qualified ? t.minIp : 1);
+  return (
+    (stats.innings_pitched ?? 0) >=
+    (category.qualified ? thresholds.minIp : 1)
+  );
 }
 
 function rankPlayers(
   players: PlayerRow[],
   category: Category,
-  t: Thresholds,
+  thresholds: Thresholds,
   limit: number
 ) {
   return players
     .filter(
       (player) =>
-        player.stats?.[category.key] != null && qualifies(player, category, t)
+        player.stats?.[category.key] != null &&
+        qualifies(player, category, thresholds)
     )
     .sort((a, b) => {
       const aValue = Number(a.stats?.[category.key] ?? 0);
       const bValue = Number(b.stats?.[category.key] ?? 0);
-      return category.direction === "high" ? bValue - aValue : aValue - bValue;
+      return category.direction === "high"
+        ? bValue - aValue
+        : aValue - bValue;
     })
     .slice(0, limit);
 }
 
 /* ───────────────────────── Components ───────────────────────── */
 
-function PlayerHeadshot({ playerId, size = "md" }: { playerId: number; size?: "md" | "lg" }) {
+function PlayerHeadshot({
+  playerId,
+  size = "md",
+}: {
+  playerId: number;
+  size?: "md" | "lg";
+}) {
   const [failed, setFailed] = useState(false);
-  const dimensions = size === "lg" ? "h-14 w-14" : "h-12 w-12";
+  const dimensions = size === "lg" ? "h-20 w-20" : "h-16 w-16";
 
   if (failed) {
     return (
@@ -165,29 +182,42 @@ function PlayerHeadshot({ playerId, size = "md" }: { playerId: number; size?: "m
       alt=""
       aria-hidden="true"
       onError={() => setFailed(true)}
-      className={`${dimensions} shrink-0 rounded-full bg-[#E8E1D5] object-cover`}
+      className={`${dimensions} shrink-0 rounded-full bg-[#E8E1D5] object-contain object-top`}
     />
   );
 }
 
-function TeamTile({ teamId, teamName }: { teamId?: string; teamName?: string }) {
+function TeamTile({
+  teamId,
+  teamName,
+}: {
+  teamId?: string;
+  teamName?: string;
+}) {
   const backgroundColor = getTeamColors(teamName).primary;
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [teamId]);
 
   return (
     <div
       className="flex h-8 w-8 shrink-0 items-center justify-center"
       style={{ backgroundColor }}
     >
-      {teamId ? (
+      {teamId && !logoFailed ? (
         <img
           src={teamLogo(teamId)}
           alt=""
           aria-hidden="true"
-          className="h-5 w-5 object-contain"
-          style={{ filter: "brightness(0) saturate(100%) invert(1)" }}
+          className="h-6 w-6 object-contain"
+          onError={() => setLogoFailed(true)}
         />
       ) : (
-        <span className="font-mono text-[0.6rem] font-bold text-white">FA</span>
+        <span className="font-mono text-[0.6rem] font-bold text-white">
+          {teamId ? teamId.slice(0, 2).toUpperCase() : "FA"}
+        </span>
       )}
     </div>
   );
@@ -210,7 +240,7 @@ function LeaderRow({
     <Link
       href={`/players/${player.id}`}
       className={`group relative flex items-center gap-4 border-b border-[#1A2842]/10 px-5 transition-colors last:border-0 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46] ${
-        size === "lg" ? "min-h-[5.5rem] py-4" : "min-h-[4.5rem] py-3"
+        size === "lg" ? "min-h-[6rem] py-4" : "min-h-[5rem] py-3"
       }`}
     >
       <span
@@ -282,7 +312,9 @@ function LeaderboardCard({
             <p className="mt-1 text-sm text-[#687384]">{category.label}</p>
           </div>
 
-          <span className="font-mono text-xs font-bold text-[#1F7A74]">TOP 10</span>
+          <span className="font-mono text-xs font-bold text-[#1F7A74]">
+            TOP 10
+          </span>
         </div>
 
         <p className="mt-4 border-t border-[#1A2842]/10 pt-3 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#1F7A74]">
@@ -300,7 +332,10 @@ function LeaderboardCard({
             key={`${String(category.key)}-${player.id}`}
             player={player}
             rank={index + 1}
-            value={formatStat(player.stats?.[category.key] as number | null, category.format)}
+            value={formatStat(
+              player.stats?.[category.key] as number | null,
+              category.format
+            )}
             hot={index === 0}
           />
         ))
@@ -324,7 +359,11 @@ function LeaderboardCard({
 
 function FrontOfPackSkeleton() {
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]" aria-busy="true" aria-label="Loading leaders">
+    <div
+      className="grid gap-4 lg:grid-cols-[1.25fr_1fr]"
+      aria-busy="true"
+      aria-label="Loading leaders"
+    >
       <div className="min-h-[28rem] animate-pulse bg-[#1A2842]/10" />
       <div className="min-h-[28rem] animate-pulse bg-[#1A2842]/5" />
     </div>
@@ -350,32 +389,31 @@ export default function LeadersPage() {
       setError("");
 
       try {
-        const [playerData, statData, { data: teamData, error: teamError }] =
-          await Promise.all([
-            fetchAll<Player>((from, to) =>
-              supabase
-                .from("Player")
-                .select("id, name, team_id, position")
-                .order("id")
-                .range(from, to)
-            ),
-            fetchAll<PlayerStat>((from, to) =>
-              supabase
-                .from("PlayerStats")
-                .select("*")
-                .eq("season", SEASON)
-                .order("player_id")
-                .range(from, to)
-            ),
-            supabase.from("Teams").select("id, name, abbreviation").order("name"),
-          ]);
+        const [playerData, statData, teamResult] = await Promise.all([
+          fetchAll<Player>((from, to) =>
+            supabase
+              .from("Player")
+              .select("id, name, team_id, position")
+              .order("id")
+              .range(from, to)
+          ),
+          fetchAll<PlayerStat>((from, to) =>
+            supabase
+              .from("PlayerStats")
+              .select("*")
+              .eq("season", SEASON)
+              .order("player_id")
+              .range(from, to)
+          ),
+          supabase.from("Teams").select("id, name, abbreviation").order("name"),
+        ]);
 
-        if (teamError) throw teamError;
+        if (teamResult.error) throw teamResult.error;
 
         if (!cancelled) {
           setPlayers(playerData);
           setStats(statData);
-          setTeams((teamData ?? []) as Team[]);
+          setTeams((teamResult.data ?? []) as Team[]);
         }
       } catch (err) {
         console.error("Failed to load leaderboard data:", err);
@@ -424,7 +462,8 @@ export default function LeadersPage() {
     [playerRows, teamFilter]
   );
 
-  const categories = view === "hitting" ? hittingCategories : pitchingCategories;
+  const categories =
+    view === "hitting" ? hittingCategories : pitchingCategories;
   const primaryCategory = categories[0];
 
   const primaryLeaders = useMemo(
@@ -449,13 +488,25 @@ export default function LeadersPage() {
   const spotlightStats: [string, string][] = topPlayer
     ? view === "hitting"
       ? [
-          [primaryCategory.shortLabel, formatStat(topPlayer.stats?.[primaryCategory.key] as number | null, primaryCategory.format)],
+          [
+            primaryCategory.shortLabel,
+            formatStat(
+              topPlayer.stats?.[primaryCategory.key] as number | null,
+              primaryCategory.format
+            ),
+          ],
           ["AVG", formatAverage(topPlayer.stats?.batting_avg)],
           ["HR", formatNumber(topPlayer.stats?.home_runs)],
           ["RBI", formatNumber(topPlayer.stats?.rbi)],
         ]
       : [
-          [primaryCategory.shortLabel, formatStat(topPlayer.stats?.[primaryCategory.key] as number | null, primaryCategory.format)],
+          [
+            primaryCategory.shortLabel,
+            formatStat(
+              topPlayer.stats?.[primaryCategory.key] as number | null,
+              primaryCategory.format
+            ),
+          ],
           ["IP", formatInnings(topPlayer.stats?.innings_pitched)],
           ["K", formatNumber(topPlayer.stats?.strikeouts_pitched)],
           ["WHIP", formatDecimal(topPlayer.stats?.whip)],
@@ -464,7 +515,6 @@ export default function LeadersPage() {
 
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
-      {/* HEADER */}
       <header className="border-b border-[#1A2842]/15">
         <div className="container-page py-10 md:py-14">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
@@ -505,7 +555,6 @@ export default function LeadersPage() {
         </div>
       </header>
 
-      {/* CONTROLS */}
       <section className="border-b border-[#1A2842]/15 bg-[#FCF9F3]">
         <div className="container-page flex flex-col gap-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div
@@ -563,7 +612,6 @@ export default function LeadersPage() {
         </div>
       )}
 
-      {/* FRONT OF THE PACK */}
       <section className="container-page py-12">
         <div className="mb-6 flex items-end justify-between">
           <div>
@@ -619,7 +667,6 @@ export default function LeadersPage() {
         )}
       </section>
 
-      {/* THE FULL PICTURE */}
       <section className="container-page pb-14">
         <div className="mb-6 flex items-end justify-between border-b border-[#1A2842]/15 pb-4">
           <div>
@@ -659,7 +706,6 @@ export default function LeadersPage() {
         )}
       </section>
 
-      {/* NOTES */}
       <section className="border-t border-[#1A2842]/15 bg-[#FCF9F3]">
         <div className="container-page grid gap-8 py-10 md:grid-cols-3">
           <div>
