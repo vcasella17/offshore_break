@@ -26,19 +26,19 @@ const TONE_COLOR: Record<Tone, string> = {
 
 const VERDICT: Record<Verdict, { label: string; color: string; line: string }> = {
   bargain: {
-    label: "Bargain",
+    label: "Good value",
     color: "#1F7A74",
-    line: "He produces more than he is paid.",
+    line: "His production is worth more than his pay.",
   },
   fair: {
-    label: "Fairly paid",
+    label: "About right",
     color: "#1A2842",
-    line: "His pay is in line with his value.",
+    line: "His pay is close to his estimated value.",
   },
   overpaid: {
-    label: "Overpaid",
+    label: "Paying more than the estimate",
     color: "#D85F46",
-    line: "He is paid more than his production is worth.",
+    line: "His pay is higher than his estimated production value.",
   },
 };
 
@@ -102,20 +102,20 @@ export default async function AppraisalPage({
       <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
         <div className="container-page py-20">
           <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em] text-[#1F7A74]">
-            The Appraisal
+            What&apos;s he worth?
           </p>
           <h1 className="mt-3 text-4xl font-black">
             No {ctx.season} stats for {player.name}
           </h1>
           <p className="mt-3 max-w-xl text-base leading-7 text-[#687384]">
-            An appraisal needs season stats. Try a player who appeared in{" "}
-            {ctx.season}.
+            We need season stats to estimate his value. Try a player who
+            appeared in {ctx.season}.
           </p>
           <Link
             href="/appraisal"
             className="mt-6 inline-block font-semibold text-[#D85F46]"
           >
-            ← Back to The Appraisal
+            ← Back to player search
           </Link>
         </div>
       </main>
@@ -156,7 +156,7 @@ export default async function AppraisalPage({
               href="/appraisal"
               className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.22em] text-[#1F7A74] hover:text-[#D85F46]"
             >
-              The Appraisal
+              What&apos;s he worth?
             </Link>
           </div>
 
@@ -209,84 +209,98 @@ export default async function AppraisalPage({
         <section className="container-page pt-6">
           <p className="border-l-4 border-[#C99A2E] bg-white px-5 py-4 text-sm leading-6 text-[#687384]">
             {ctx.warAvailable
-              ? "WAR for this player isn't in the database yet, so this uses an estimate built from his stats."
-              : "WAR and salary data haven't been imported yet, so this page uses estimates and can't show salary."}
+              ? "WAR for this player isn't in the database yet, so we're estimating it from his stats."
+              : "WAR and salary data haven't been added yet. This page uses estimates and may not show his salary."}
           </p>
         </section>
       )}
 
       {/* VERDICT */}
-      {verdict && appraisal.surplus !== null && appraisal.marketLine !== null && (
-        <section className="container-page pt-8">
-          <div
-            className="flex flex-col justify-between gap-4 border-l-8 bg-white p-6 md:flex-row md:items-center"
-            style={{ borderColor: verdict.color }}
-          >
-            <div>
-              <p
-                className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em]"
-                style={{ color: verdict.color }}
-              >
-                The verdict
-              </p>
-              <p className="mt-1 text-4xl font-black uppercase tracking-[-0.04em]">
-                {verdict.label}
-              </p>
-              <p className="mt-1 text-base text-[#687384]">{verdict.line}</p>
+      {verdict &&
+        appraisal.surplus !== null &&
+        appraisal.marketLine !== null && (
+          <section className="container-page pt-8">
+            <div
+              className="flex flex-col justify-between gap-4 border-l-8 bg-white p-6 md:flex-row md:items-center"
+              style={{ borderColor: verdict.color }}
+            >
+              <div>
+                <p
+                  className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em]"
+                  style={{ color: verdict.color }}
+                >
+                  The quick take
+                </p>
+                <p className="mt-1 text-4xl font-black uppercase tracking-[-0.04em]">
+                  {verdict.label}
+                </p>
+                <p className="mt-1 text-base text-[#687384]">{verdict.line}</p>
+              </div>
+
+              <div className="md:text-right">
+                <p
+                  className="font-mono text-4xl font-bold"
+                  style={{ color: verdict.color }}
+                >
+                  {appraisal.surplus >= 0 ? "+" : "−"}
+                  {formatMoney(Math.abs(appraisal.surplus))}
+                </p>
+                <p className="mt-1 text-sm text-[#687384]">
+                  estimated value above or below pay, per season
+                </p>
+              </div>
             </div>
 
-            <div className="md:text-right">
-              <p className="font-mono text-4xl font-bold" style={{ color: verdict.color }}>
-                {appraisal.surplus >= 0 ? "+" : "−"}
-                {formatMoney(Math.abs(appraisal.surplus))}
+            {appraisal.earlyCareer && (
+              <p className="mt-3 text-sm leading-6 text-[#687384]">
+                He&apos;s paid near the league minimum, which is common early in
+                a career. Teams have more control over young players&apos; pay,
+                so this estimate shows what his production might be worth on
+                the open market—not what he can necessarily ask for today.
               </p>
-              <p className="mt-1 text-sm text-[#687384]">
-                fair value vs. pay, per season
-              </p>
-            </div>
-          </div>
-
-          {appraisal.earlyCareer && (
-            <p className="mt-3 text-sm leading-6 text-[#687384]">
-              He is paid near the league minimum, which is common early in a
-              career. Teams control young players cheaply, so the surplus shows
-              what he would earn on the open market, not what he can demand today.
-            </p>
-          )}
-        </section>
-      )}
+            )}
+          </section>
+        )}
 
       {/* SUMMARY */}
       <section className="container-page py-8">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
-            label="Fair value"
+            label="Estimated value"
             value={formatMoney(appraisal.blended.mid)}
-            caption={`Per season, range ${formatMoney(appraisal.blended.low)} to ${formatMoney(appraisal.blended.high)}.`}
+            caption={`Per season. Estimated range: ${formatMoney(appraisal.blended.low)} to ${formatMoney(appraisal.blended.high)}.`}
             accent={TONE_COLOR.gold}
           />
           <SummaryCard
-            label={appraisal.marketSource === "contract" ? "Contract" : "Current pay"}
-            value={appraisal.marketLine !== null ? formatMoney(appraisal.marketLine) : "—"}
+            label={
+              appraisal.marketSource === "contract"
+                ? "Contract"
+                : "This year's salary"
+            }
+            value={
+              appraisal.marketLine !== null
+                ? formatMoney(appraisal.marketLine)
+                : "—"
+            }
             caption={
               appraisal.marketSource === "contract" && appraisal.contract
-                ? `${appraisal.contract.years} years remaining.`
+                ? `${appraisal.contract.years} years left on the contract.`
                 : appraisal.marketLine !== null
                   ? `${ctx.season} salary.`
-                  : "Salary isn't available for this player yet."
+                  : "Salary data isn't available for this player yet."
             }
             accent={TONE_COLOR.coral}
           />
           <SummaryCard
-            label="Intrinsic value · DCF"
+            label="Projected career value"
             value={formatMoney(appraisal.dcf.base.totalPv)}
-            caption={`Present value of ${appraisal.dcf.base.rows.length} projected seasons.`}
+            caption={`Today's value of ${appraisal.dcf.base.rows.length} projected seasons.`}
             accent={TONE_COLOR.navy}
           />
           <SummaryCard
-            label="Production value"
+            label="Value of this season"
             value={formatMoney(appraisal.current.mid)}
-            caption={`${ctx.season} WAR at about ${formatMoney(MODEL.dollarsPerWar)} per win.`}
+            caption={`${ctx.season} WAR valued at about ${formatMoney(MODEL.dollarsPerWar)} per win.`}
             accent={TONE_COLOR.teal}
           />
         </div>
@@ -296,66 +310,76 @@ export default async function AppraisalPage({
           appraisal.contractDcf !== null && (
             <div className="mt-4 border-l-4 border-[#D85F46] bg-white p-6">
               <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.18em] text-[#D85F46]">
-                Contract vs. intrinsic value
+                Contract compared with projected value
               </p>
               <p className="mt-2 text-lg leading-8">
-                {formatMoney(appraisal.contract.aav)} × {appraisal.contract.years} yrs
-                (present value {formatMoney(appraisal.contractPvValue)}). Over the
-                same seasons his projected production is worth{" "}
+                His contract is {formatMoney(appraisal.contract.aav)} a year for{" "}
+                {appraisal.contract.years} years. In today&apos;s dollars,
+                that&apos;s worth {formatMoney(appraisal.contractPvValue)}. His
+                projected production over those same seasons is estimated at{" "}
                 <strong>{formatMoney(appraisal.contractDcf)}</strong>.{" "}
                 {appraisal.contractDcf >= appraisal.contractPvValue ? (
                   <span className="font-bold text-[#1F7A74]">
-                    Surplus of{" "}
-                    {formatMoney(appraisal.contractDcf - appraisal.contractPvValue)}.
+                    That&apos;s an estimated surplus of{" "}
+                    {formatMoney(
+                      appraisal.contractDcf - appraisal.contractPvValue,
+                    )}
+                    .
                   </span>
                 ) : (
                   <span className="font-bold text-[#D85F46]">
-                    Shortfall of{" "}
-                    {formatMoney(appraisal.contractPvValue - appraisal.contractDcf)}.
+                    That&apos;s an estimated shortfall of{" "}
+                    {formatMoney(
+                      appraisal.contractPvValue - appraisal.contractDcf,
+                    )}
+                    .
                   </span>
                 )}
               </p>
               {appraisal.contract.note && (
-                <p className="mt-2 text-sm text-[#687384]">{appraisal.contract.note}</p>
+                <p className="mt-2 text-sm text-[#687384]">
+                  {appraisal.contract.note}
+                </p>
               )}
             </div>
           )}
       </section>
 
-      {/* FOOTBALL FIELD */}
+      {/* VALUE RANGE */}
       <section className="container-page pb-14">
         <div className="mb-5">
           <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em] text-[#1F7A74]">
-            01 / Valuation range
+            01 / Value range
           </p>
           <h2 className="mt-2 text-4xl font-black uppercase tracking-[-0.05em]">
-            Football field
+            What the numbers say
           </h2>
           <p className="mt-2 max-w-2xl text-base leading-7 text-[#687384]">
-            Valuation outputs are shown as ranges, not point estimates. The
-            dashed line is what he is paid.
+            Each estimate is shown as a range because no single number tells
+            the whole story. The dashed line marks his pay.
           </p>
         </div>
 
         <FootballField rows={fieldRows} marker={marker} />
       </section>
 
-      {/* COMPS + PRECEDENT */}
+      {/* COMPARABLE PLAYERS */}
       <section className="container-page pb-14">
         <div className="mb-5">
           <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em] text-[#1F7A74]">
             02 / Comparable players
           </p>
           <h2 className="mt-2 text-4xl font-black uppercase tracking-[-0.05em]">
-            Comps &amp; precedent contracts
+            Comparable players
           </h2>
           <p className="mt-2 max-w-2xl text-base leading-7 text-[#687384]">
+            These players had similar stats and playing time. The match score
+            shows how closely their numbers line up. We leave out very small
+            salaries because early-career pay usually isn&apos;t a good guide to
+            a player&apos;s market value.{" "}
             {isPitcher
-              ? "Matched on ERA, WHIP, strikeouts and walks per nine, and workload."
-              : "Matched on OPS, average, power, walks, strikeouts and playing time."}{" "}
-            Match is a 0–100 similarity score. Salaries under{" "}
-            {formatMoney(MODEL.marketSalaryFloor)} are left out of the precedent
-            range because they reflect early-career pay, not market prices.
+              ? "Pitchers are matched using ERA, WHIP, strikeouts and walks per nine, and workload."
+              : "Hitters are matched using OPS, batting average, power, walks, strikeouts, and playing time."}
           </p>
         </div>
 
@@ -364,18 +388,24 @@ export default async function AppraisalPage({
             <table className="w-full min-w-[44rem] border-collapse">
               <thead>
                 <tr className="border-b border-[#1A2842]/20 text-left">
-                  {["Comparable", "Team", "Pos", "Match", "WAR", "Production value", "Salary"].map(
-                    (heading, index) => (
-                      <th
-                        key={heading}
-                        className={`px-4 py-4 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#1F7A74] ${
-                          index >= 3 ? "text-right" : ""
-                        }`}
-                      >
-                        {heading}
-                      </th>
-                    )
-                  )}
+                  {[
+                    "Comparable",
+                    "Team",
+                    "Pos",
+                    "Match",
+                    "WAR",
+                    "Value this season",
+                    "Salary",
+                  ].map((heading, index) => (
+                    <th
+                      key={heading}
+                      className={`px-4 py-4 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#1F7A74] ${
+                        index >= 3 ? "text-right" : ""
+                      }`}
+                    >
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -420,7 +450,9 @@ export default async function AppraisalPage({
                       {formatMoney(comp.value)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-sm">
-                      {comp.payload.salary != null ? formatMoney(comp.payload.salary) : "—"}
+                      {comp.payload.salary != null
+                        ? formatMoney(comp.payload.salary)
+                        : "—"}
                     </td>
                   </tr>
                 ))}
@@ -434,7 +466,9 @@ export default async function AppraisalPage({
                     {formatMoney(appraisal.current.mid)}
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-sm font-bold text-[#D85F46]">
-                    {appraisal.salary != null ? formatMoney(appraisal.salary) : "—"}
+                    {appraisal.salary != null
+                      ? formatMoney(appraisal.salary)
+                      : "—"}
                   </td>
                 </tr>
               </tfoot>
@@ -442,7 +476,7 @@ export default async function AppraisalPage({
           </div>
         ) : (
           <div className="border-t-2 border-[#1A2842] bg-white px-6 py-10 text-base text-[#687384]">
-            Not enough comparable players found.
+            We couldn&apos;t find enough similar players.
           </div>
         )}
       </section>
@@ -452,10 +486,10 @@ export default async function AppraisalPage({
         <section className="container-page pb-14">
           <div className="mb-5">
             <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em] text-[#1F7A74]">
-              03 / Track record
+              03 / Past seasons
             </p>
             <h2 className="mt-2 text-4xl font-black uppercase tracking-[-0.05em]">
-              Season by season
+              Year by year
             </h2>
           </div>
 
@@ -463,24 +497,32 @@ export default async function AppraisalPage({
             <table className="w-full min-w-[28rem] border-collapse">
               <thead>
                 <tr className="border-b border-[#1A2842]/20 text-left">
-                  {["Season", "WAR", "Production value", "Salary"].map((heading, index) => (
-                    <th
-                      key={heading}
-                      className={`px-4 py-4 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#1F7A74] ${
-                        index >= 1 ? "text-right" : ""
-                      }`}
-                    >
-                      {heading}
-                    </th>
-                  ))}
+                  {["Season", "WAR", "Value that season", "Salary"].map(
+                    (heading, index) => (
+                      <th
+                        key={heading}
+                        className={`px-4 py-4 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#1F7A74] ${
+                          index >= 1 ? "text-right" : ""
+                        }`}
+                      >
+                        {heading}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {appraisal.history.map((row) => (
                   <tr key={row.season} className="border-b border-[#1A2842]/10">
-                    <td className="px-4 py-3 font-mono text-sm font-bold">{row.season}</td>
-                    <td className="px-4 py-3 text-right font-mono text-sm">{formatWar(row.war)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-sm">{formatMoney(row.value)}</td>
+                    <td className="px-4 py-3 font-mono text-sm font-bold">
+                      {row.season}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-sm">
+                      {formatWar(row.war)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-sm">
+                      {formatMoney(row.value)}
+                    </td>
                     <td className="px-4 py-3 text-right font-mono text-sm">
                       {row.salary != null ? formatMoney(row.salary) : "—"}
                     </td>
@@ -492,20 +534,20 @@ export default async function AppraisalPage({
         </section>
       )}
 
-      {/* DCF */}
+      {/* LOOKING AHEAD */}
       <section className="bg-[#101A2C] text-white">
         <div className="container-page py-14 md:py-20">
           <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em] text-[#59B3AD]">
-            04 / Discounted cash flow
+            04 / Looking ahead
           </p>
           <h2 className="mt-2 text-4xl font-black uppercase tracking-[-0.05em]">
-            Intrinsic value
+            Projected value
           </h2>
           <p className="mt-3 max-w-2xl text-base leading-7 text-white/65">
-            Each projected season becomes dollars and is discounted back to today
-            at {(MODEL.scenarios.base.discount * 100).toFixed(1)}%. Seasons below
-            replacement level count as zero, because a team can always sit a
-            struggling player.
+            We estimate what his future seasons could be worth, then convert
+            those amounts into today&apos;s dollars using a{" "}
+            {(MODEL.scenarios.base.discount * 100).toFixed(1)}% discount rate.
+            Seasons below replacement level count as zero in this estimate.
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -519,7 +561,12 @@ export default async function AppraisalPage({
                 }`}
               >
                 <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#59B3AD]">
-                  {key} case · {(appraisal.dcf[key].discount * 100).toFixed(1)}% rate
+                  {key === "bear"
+                    ? "Lower estimate"
+                    : key === "base"
+                      ? "Middle estimate"
+                      : "Higher estimate"}{" "}
+                  · {(appraisal.dcf[key].discount * 100).toFixed(1)}% rate
                 </p>
                 <p className="mt-2 font-mono text-3xl font-bold">
                   {formatMoney(appraisal.dcf[key].totalPv)}
@@ -535,30 +582,41 @@ export default async function AppraisalPage({
             <table className="w-full min-w-[34rem] border-collapse">
               <thead>
                 <tr className="border-b border-white/20 text-left">
-                  {["Season", "Age", "Proj. WAR", "$ per WAR", "Value", "Present value"].map(
-                    (heading, index) => (
-                      <th
-                        key={heading}
-                        className={`px-3 py-3 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#59B3AD] ${
-                          index >= 2 ? "text-right" : ""
-                        }`}
-                      >
-                        {heading}
-                      </th>
-                    )
-                  )}
+                  {[
+                    "Season",
+                    "Age",
+                    "Projected WAR",
+                    "Dollars per WAR",
+                    "Season value",
+                    "Value in today's dollars",
+                  ].map((heading, index) => (
+                    <th
+                      key={heading}
+                      className={`px-3 py-3 text-[0.75rem] font-black uppercase tracking-[0.14em] text-[#59B3AD] ${
+                        index >= 2 ? "text-right" : ""
+                      }`}
+                    >
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {appraisal.dcf.base.rows.map((row) => (
                   <tr key={row.year} className="border-b border-white/10">
                     <td className="px-3 py-3 font-mono text-sm">{row.year}</td>
-                    <td className="px-3 py-3 font-mono text-sm text-white/70">{row.age}</td>
-                    <td className="px-3 py-3 text-right font-mono text-sm">{formatWar(row.war)}</td>
+                    <td className="px-3 py-3 font-mono text-sm text-white/70">
+                      {row.age}
+                    </td>
+                    <td className="px-3 py-3 text-right font-mono text-sm">
+                      {formatWar(row.war)}
+                    </td>
                     <td className="px-3 py-3 text-right font-mono text-sm text-white/70">
                       {formatMoney(row.price)}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-sm">{formatMoney(row.value)}</td>
+                    <td className="px-3 py-3 text-right font-mono text-sm">
+                      {formatMoney(row.value)}
+                    </td>
                     <td className="px-3 py-3 text-right font-mono text-sm font-bold">
                       {formatMoney(row.pv)}
                     </td>
@@ -567,8 +625,11 @@ export default async function AppraisalPage({
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={5} className="px-3 py-3 text-sm font-bold text-[#59B3AD]">
-                    Total present value (base case)
+                  <td
+                    colSpan={5}
+                    className="px-3 py-3 text-sm font-bold text-[#59B3AD]"
+                  >
+                    Total projected value (middle estimate)
                   </td>
                   <td className="px-3 py-3 text-right font-mono text-base font-bold text-[#D85F46]">
                     {formatMoney(appraisal.dcf.base.totalPv)}
@@ -583,50 +644,48 @@ export default async function AppraisalPage({
       {/* METHOD */}
       <section className="container-page py-14">
         <p className="font-mono text-[0.75rem] font-bold uppercase tracking-[0.2em] text-[#1F7A74]">
-          05 / Method &amp; assumptions
+          05 / How we came up with this
         </p>
         <h2 className="mt-2 text-3xl font-black uppercase tracking-[-0.05em]">
-          How to read this
+          How to read these numbers
         </h2>
 
         <div className="mt-6 grid gap-8 md:grid-cols-2">
           <ul className="space-y-3 text-base leading-7 text-[#687384]">
             <li>
-              <strong className="text-[#1A2842]">WAR and salary.</strong> From
-              Baseball-Reference where available, otherwise estimated from OPS
-              or ERA, playing time and position.
+              <strong className="text-[#1A2842]">WAR and salary.</strong>{" "}
+              WAR and salary come from the available data. If WAR is missing,
+              we estimate it using stats, playing time, and position.
             </li>
             <li>
-              <strong className="text-[#1A2842]">Price of a win.</strong>{" "}
-              {formatMoney(MODEL.dollarsPerWar)} per WAR, growing{" "}
-              {(MODEL.dollarInflation * 100).toFixed(0)}% a year.
+              <strong className="text-[#1A2842]">Value of a win.</strong>{" "}
+              We use about {formatMoney(MODEL.dollarsPerWar)} per WAR, increasing
+              by {(MODEL.dollarInflation * 100).toFixed(0)}% each year.
             </li>
             <li>
-              <strong className="text-[#1A2842]">Projection.</strong> This
-              season&apos;s rate is pulled toward an average regular, then aged
-              year by year to age {MODEL.retireAge} (at most {MODEL.horizonCap}{" "}
-              seasons).
+              <strong className="text-[#1A2842]">Future seasons.</strong> We
+              start with this season&apos;s performance, pull it toward an
+              average regular, and adjust for age each year through age{" "}
+              {MODEL.retireAge}—up to {MODEL.horizonCap} seasons.
             </li>
           </ul>
 
           <ul className="space-y-3 text-base leading-7 text-[#687384]">
             <li>
-              <strong className="text-[#1A2842]">Fair value.</strong> A blend:{" "}
-              {Math.round(MODEL.weights.dcf * 100)}% DCF,{" "}
-              {Math.round(MODEL.weights.comps * 100)}% comps,{" "}
-              {Math.round(MODEL.weights.precedent * 100)}% precedent contracts,{" "}
-              {Math.round(MODEL.weights.forecast * 100)}% forecast,{" "}
-              {Math.round(MODEL.weights.past * 100)}% past performance.
+              <strong className="text-[#1A2842]">Estimated value.</strong> We
+              combine projected value, similar players, past contracts, future
+              estimates, and past performance. Each gets a different weight.
             </li>
             <li>
-              <strong className="text-[#1A2842]">Verdict.</strong> Bargain if
-              fair value is at least 25% above pay, overpaid if it is more than
-              20% below.
+              <strong className="text-[#1A2842]">The quick take.</strong> We
+              call it good value when the estimate is at least 25% above pay,
+              and paying more than the estimate when it&apos;s over 20% below.
             </li>
             <li>
-              <strong className="text-[#1A2842]">Not advice.</strong> An
-              estimate for analysis and entertainment. Injuries, role changes
-              and contract terms can move real values a lot.
+              <strong className="text-[#1A2842]">Keep in mind.</strong> This is
+              an estimate, not a prediction or contract advice. Injuries, role
+              changes, and contract details can change a player&apos;s value a
+              lot.
             </li>
           </ul>
         </div>

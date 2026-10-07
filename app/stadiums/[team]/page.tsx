@@ -1,20 +1,33 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { teamLogo } from "@/lib/baseball";
-import { STADIUMS, stadiumUrl } from "@/lib/stadiums";
-import StadiumViewer from "@/components/StadiumViewer";
+import { getStadium } from "@/lib/stadiums";
+import StadiumViewer from "@/components/StadiumViewerLoader";
 
 export const revalidate = 3600;
 
-export default async function StadiumPage({
-  params,
-}: {
+type PageProps = {
   params: Promise<{ team: string }>;
-}) {
+};
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { team } = await params;
   const abbreviation = team.toUpperCase();
 
+  return {
+    title: getStadium(abbreviation)?.name ?? `${abbreviation} ballpark`,
+  };
+}
+
+export default async function StadiumPage({ params }: PageProps) {
+  const { team } = await params;
+  const abbreviation = team.toUpperCase();
+
+  // only 2-3 letters are allowed, so nothing odd can get through
   if (!/^[A-Z]{2,3}$/.test(abbreviation)) {
     notFound();
   }
@@ -25,10 +38,11 @@ export default async function StadiumPage({
     .eq("abbreviation", abbreviation)
     .maybeSingle();
 
-  const stadium = STADIUMS[abbreviation];
+  const stadium = getStadium(abbreviation);
 
   return (
-    <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+    <div className="bg-[#F8F3EA] text-[#1A2842]">
+      {/* HEADER */}
       <section className="paper-grid border-b border-[#1A2842]/15">
         <div className="container-page py-10 md:py-14">
           <div className="mb-5 flex items-center gap-3">
@@ -43,6 +57,7 @@ export default async function StadiumPage({
 
           <div className="flex items-center gap-5">
             {teamRow && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={teamLogo(teamRow.id)}
                 alt=""
@@ -63,13 +78,11 @@ export default async function StadiumPage({
         </div>
       </section>
 
+      {/* VIEWER */}
       <section className="container-page py-8">
         {stadium ? (
           <>
-            <StadiumViewer
-              modelUrl={stadiumUrl(abbreviation)}
-              className="h-[75vh] min-h-[30rem] w-full"
-            />
+            <StadiumViewer modelUrl={stadium.url} />
 
             <p className="mt-4 text-sm leading-6 text-[#687384]">
               3D ballpark model from MLB Statcast, used here for a school
@@ -87,8 +100,7 @@ export default async function StadiumPage({
               No 3D model for {abbreviation} yet
             </h2>
             <p className="mx-auto mt-3 max-w-md text-base leading-7 text-[#687384]">
-              Add{" "}
-              <code>public/stadiums/{abbreviation}.glb</code> and list it in{" "}
+              Add <code>public/stadiums/{abbreviation}.glb</code> and list it in{" "}
               <code>lib/stadiums.ts</code>.
             </p>
             <Link
@@ -100,6 +112,6 @@ export default async function StadiumPage({
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 }

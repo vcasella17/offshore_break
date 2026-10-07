@@ -17,6 +17,7 @@ const navigation = [
   { href: "/games", label: "Games" },
   { href: "/leaders", label: "Leaders" },
   { href: "/compare", label: "Compare" },
+  { href: "/stadiums", label: "Ballparks" },
   { href: "/appraisal", label: "Appraisal", badge: "New" },
 ];
 

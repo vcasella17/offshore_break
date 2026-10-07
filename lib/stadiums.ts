@@ -7,6 +7,7 @@
  */
 
 export type StadiumInfo = {
+  /** the park's name */
   name: string;
 };
 
@@ -42,6 +43,38 @@ export const STADIUMS: Record<string, StadiumInfo> = {
   WSH: { name: "Nationals Park" },
 };
 
-export function stadiumUrl(abbreviation: string): string {
-  return `/stadiums/${encodeURIComponent(abbreviation)}.glb`;
+/*
+ * Other abbreviations a database might use for the same team.
+ * Left side = what your database might say, right side = the file name above.
+ */
+const ALIASES: Record<string, string> = {
+  AZ: "ARI",
+  CHW: "CWS",
+  KCR: "KC",
+  SDP: "SD",
+  SFG: "SF",
+  TBR: "TB",
+  WAS: "WSH",
+  WSN: "WSH",
+};
+
+export type Stadium = StadiumInfo & {
+  /** the abbreviation used for the .glb file name */
+  code: string;
+  /** the public URL of the .glb file */
+  url: string;
+};
+
+export function stadiumUrl(code: string): string {
+  return `/stadiums/${encodeURIComponent(code)}.glb`;
+}
+
+/** Returns the stadium for a team abbreviation, or null if no model exists. */
+export function getStadium(abbreviation: string): Stadium | null {
+  const upper = abbreviation.trim().toUpperCase();
+  const code = ALIASES[upper] ?? upper;
+
+  if (!Object.prototype.hasOwnProperty.call(STADIUMS, code)) return null;
+
+  return { ...STADIUMS[code], code, url: stadiumUrl(code) };
 }
