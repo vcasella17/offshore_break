@@ -12,11 +12,9 @@ import {
   formatNumber,
   getTeamColors,
   getThresholds,
-  headshot,
   teamLogo,
 } from "@/lib/baseball";
-import SpotlightCard from "@/components/SpotlightCard";
-import { actionForStat } from "@/lib/playerPhotos";
+import PlayerPhoto from "@/components/PlayerPhoto";
 
 /* ───────────────────────── Types ───────────────────────── */
 
@@ -78,26 +76,156 @@ type Thresholds = {
   minIp: number;
 };
 
+/* ───────────────────────── Categories ───────────────────────── */
+
 const hittingCategories: Category[] = [
-  { key: "ops", label: "On-Base Plus Slugging", shortLabel: "OPS", type: "hitting", format: "average", direction: "high", qualified: true },
-  { key: "batting_avg", label: "Batting Average", shortLabel: "AVG", type: "hitting", format: "average", direction: "high", qualified: true },
-  { key: "obp", label: "On-Base Percentage", shortLabel: "OBP", type: "hitting", format: "average", direction: "high", qualified: true },
-  { key: "slg", label: "Slugging Percentage", shortLabel: "SLG", type: "hitting", format: "average", direction: "high", qualified: true },
-  { key: "home_runs", label: "Home Runs", shortLabel: "HR", type: "hitting", format: "number", direction: "high", qualified: false },
-  { key: "rbi", label: "Runs Batted In", shortLabel: "RBI", type: "hitting", format: "number", direction: "high", qualified: false },
-  { key: "hits", label: "Hits", shortLabel: "H", type: "hitting", format: "number", direction: "high", qualified: false },
-  { key: "walks", label: "Walks", shortLabel: "BB", type: "hitting", format: "number", direction: "high", qualified: false },
-  { key: "strikeouts", label: "Fewest Strikeouts", shortLabel: "K", type: "hitting", format: "number", direction: "low", qualified: true },
+  {
+    key: "ops",
+    label: "On-Base Plus Slugging",
+    shortLabel: "OPS",
+    type: "hitting",
+    format: "average",
+    direction: "high",
+    qualified: true,
+  },
+  {
+    key: "batting_avg",
+    label: "Batting Average",
+    shortLabel: "AVG",
+    type: "hitting",
+    format: "average",
+    direction: "high",
+    qualified: true,
+  },
+  {
+    key: "obp",
+    label: "On-Base Percentage",
+    shortLabel: "OBP",
+    type: "hitting",
+    format: "average",
+    direction: "high",
+    qualified: true,
+  },
+  {
+    key: "slg",
+    label: "Slugging Percentage",
+    shortLabel: "SLG",
+    type: "hitting",
+    format: "average",
+    direction: "high",
+    qualified: true,
+  },
+  {
+    key: "home_runs",
+    label: "Home Runs",
+    shortLabel: "HR",
+    type: "hitting",
+    format: "number",
+    direction: "high",
+    qualified: false,
+  },
+  {
+    key: "rbi",
+    label: "Runs Batted In",
+    shortLabel: "RBI",
+    type: "hitting",
+    format: "number",
+    direction: "high",
+    qualified: false,
+  },
+  {
+    key: "hits",
+    label: "Hits",
+    shortLabel: "H",
+    type: "hitting",
+    format: "number",
+    direction: "high",
+    qualified: false,
+  },
+  {
+    key: "walks",
+    label: "Walks",
+    shortLabel: "BB",
+    type: "hitting",
+    format: "number",
+    direction: "high",
+    qualified: false,
+  },
+  {
+    key: "strikeouts",
+    label: "Fewest Strikeouts",
+    shortLabel: "K",
+    type: "hitting",
+    format: "number",
+    direction: "low",
+    qualified: true,
+  },
 ];
 
 const pitchingCategories: Category[] = [
-  { key: "era", label: "Earned Run Average", shortLabel: "ERA", type: "pitching", format: "decimal", direction: "low", qualified: true },
-  { key: "whip", label: "Walks + Hits / Inning", shortLabel: "WHIP", type: "pitching", format: "decimal", direction: "low", qualified: true },
-  { key: "strikeouts_pitched", label: "Strikeouts", shortLabel: "K", type: "pitching", format: "number", direction: "high", qualified: false },
-  { key: "innings_pitched", label: "Innings Pitched", shortLabel: "IP", type: "pitching", format: "innings", direction: "high", qualified: false },
-  { key: "wins", label: "Wins", shortLabel: "W", type: "pitching", format: "number", direction: "high", qualified: false },
-  { key: "losses", label: "Fewest Losses", shortLabel: "L", type: "pitching", format: "number", direction: "low", qualified: true },
-  { key: "earned_runs", label: "Fewest Earned Runs", shortLabel: "ER", type: "pitching", format: "number", direction: "low", qualified: true },
+  {
+    key: "era",
+    label: "Earned Run Average",
+    shortLabel: "ERA",
+    type: "pitching",
+    format: "decimal",
+    direction: "low",
+    qualified: true,
+  },
+  {
+    key: "whip",
+    label: "Walks + Hits / Inning",
+    shortLabel: "WHIP",
+    type: "pitching",
+    format: "decimal",
+    direction: "low",
+    qualified: true,
+  },
+  {
+    key: "strikeouts_pitched",
+    label: "Strikeouts",
+    shortLabel: "K",
+    type: "pitching",
+    format: "number",
+    direction: "high",
+    qualified: false,
+  },
+  {
+    key: "innings_pitched",
+    label: "Innings Pitched",
+    shortLabel: "IP",
+    type: "pitching",
+    format: "innings",
+    direction: "high",
+    qualified: false,
+  },
+  {
+    key: "wins",
+    label: "Wins",
+    shortLabel: "W",
+    type: "pitching",
+    format: "number",
+    direction: "high",
+    qualified: false,
+  },
+  {
+    key: "losses",
+    label: "Fewest Losses",
+    shortLabel: "L",
+    type: "pitching",
+    format: "number",
+    direction: "low",
+    qualified: true,
+  },
+  {
+    key: "earned_runs",
+    label: "Fewest Earned Runs",
+    shortLabel: "ER",
+    type: "pitching",
+    format: "number",
+    direction: "low",
+    qualified: true,
+  },
 ];
 
 /* ───────────────────────── Helpers ───────────────────────── */
@@ -109,21 +237,34 @@ function formatStat(
   switch (format) {
     case "average":
       return formatAverage(value);
+
     case "decimal":
       return formatDecimal(value);
+
     case "innings":
       return formatInnings(value);
+
     default:
       return formatNumber(value);
   }
 }
 
-function qualifies(player: PlayerRow, category: Category, thresholds: Thresholds) {
+function qualifies(
+  player: PlayerRow,
+  category: Category,
+  thresholds: Thresholds
+) {
   const stats = player.stats;
-  if (!stats) return false;
+
+  if (!stats) {
+    return false;
+  }
 
   if (category.type === "hitting") {
-    return (stats.at_bats ?? 0) >= (category.qualified ? thresholds.minAb : 1);
+    return (
+      (stats.at_bats ?? 0) >=
+      (category.qualified ? thresholds.minAb : 1)
+    );
   }
 
   return (
@@ -147,6 +288,7 @@ function rankPlayers(
     .sort((a, b) => {
       const aValue = Number(a.stats?.[category.key] ?? 0);
       const bValue = Number(b.stats?.[category.key] ?? 0);
+
       return category.direction === "high"
         ? bValue - aValue
         : aValue - bValue;
@@ -154,38 +296,7 @@ function rankPlayers(
     .slice(0, limit);
 }
 
-/* ───────────────────────── Components ───────────────────────── */
-
-function PlayerHeadshot({
-  playerId,
-  size = "md",
-}: {
-  playerId: number;
-  size?: "md" | "lg";
-}) {
-  const [failed, setFailed] = useState(false);
-  const dimensions = size === "lg" ? "h-20 w-20" : "h-16 w-16";
-
-  if (failed) {
-    return (
-      <div
-        className={`${dimensions} flex shrink-0 items-center justify-center rounded-full bg-[#E8E1D5] font-mono text-[0.65rem] font-bold text-[#1F7A74]`}
-      >
-        OB
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={headshot(playerId)}
-      alt=""
-      aria-hidden="true"
-      onError={() => setFailed(true)}
-      className={`${dimensions} shrink-0 rounded-full bg-[#E8E1D5] object-contain object-top`}
-    />
-  );
-}
+/* ───────────────────────── Team Tile ───────────────────────── */
 
 function TeamTile({
   teamId,
@@ -195,6 +306,7 @@ function TeamTile({
   teamName?: string;
 }) {
   const backgroundColor = getTeamColors(teamName).primary;
+
   const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
@@ -223,35 +335,58 @@ function TeamTile({
   );
 }
 
+/* ───────────────────────── Leader Row ───────────────────────── */
+
 function LeaderRow({
   player,
   rank,
   value,
   hot = false,
   size = "md",
+  photoContext = "batting",
 }: {
   player: PlayerRow;
   rank: number;
   value: string;
   hot?: boolean;
   size?: "md" | "lg";
+  photoContext?: "batting" | "pitching" | "fielding" | "baserunning" | "general";
 }) {
+  const photoSize =
+    size === "lg"
+      ? "h-20 w-20"
+      : "h-16 w-16";
+
   return (
     <Link
       href={`/players/${player.id}`}
       className={`group relative flex items-center gap-4 border-b border-[#1A2842]/10 px-5 transition-colors last:border-0 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46] ${
-        size === "lg" ? "min-h-[6rem] py-4" : "min-h-[5rem] py-3"
+        size === "lg"
+          ? "min-h-[6rem] py-4"
+          : "min-h-[5rem] py-3"
       }`}
     >
       <span
         className={`w-7 shrink-0 font-mono text-sm font-bold ${
-          hot ? "text-[#D85F46]" : "text-[#1F7A74]"
+          hot
+            ? "text-[#D85F46]"
+            : "text-[#1F7A74]"
         }`}
       >
         {String(rank).padStart(2, "0")}
       </span>
 
-      <PlayerHeadshot playerId={player.id} size={size} />
+      <div
+        className={`${photoSize} shrink-0 overflow-hidden rounded-full bg-[#E8E1D5]`}
+      >
+        <PlayerPhoto
+          playerId={player.id}
+          playerName={player.name}
+          context={photoContext}
+          objectFit="cover"
+          objectPosition="center"
+        />
+      </div>
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-base font-bold group-hover:text-[#D85F46]">
@@ -259,11 +394,19 @@ function LeaderRow({
         </p>
 
         <div className="mt-1.5 flex items-center gap-2">
-          <TeamTile teamId={player.team?.id} teamName={player.team?.name} />
+          <TeamTile
+            teamId={player.team?.id}
+            teamName={player.team?.name}
+          />
+
           <span className="font-mono text-xs font-semibold text-[#1F7A74]">
             {player.team?.abbreviation ?? "FA"}
           </span>
-          <span className="text-[#687384]/50">·</span>
+
+          <span className="text-[#687384]/50">
+            ·
+          </span>
+
           <span className="truncate text-xs text-[#687384]">
             {player.position || "—"}
           </span>
@@ -272,7 +415,9 @@ function LeaderRow({
 
       <p
         className={`shrink-0 font-mono text-lg font-bold ${
-          hot ? "text-[#D85F46]" : "text-[#1A2842]"
+          hot
+            ? "text-[#D85F46]"
+            : "text-[#1A2842]"
         }`}
       >
         {value}
@@ -280,6 +425,8 @@ function LeaderRow({
     </Link>
   );
 }
+
+/* ───────────────────────── Leaderboard Card ───────────────────────── */
 
 function LeaderboardCard({
   category,
@@ -290,7 +437,12 @@ function LeaderboardCard({
   players: PlayerRow[];
   thresholds: Thresholds;
 }) {
-  const ranked = rankPlayers(players, category, thresholds, 10);
+  const ranked = rankPlayers(
+    players,
+    category,
+    thresholds,
+    10
+  );
 
   const note = category.qualified
     ? category.type === "hitting"
@@ -298,18 +450,29 @@ function LeaderboardCard({
       : `Qualified · ${thresholds.minIp}+ IP`
     : "Season totals";
 
+  const photoContext =
+    category.type === "pitching"
+      ? "pitching"
+      : "batting";
+
   return (
     <section className="overflow-hidden border-t-2 border-[#1A2842] bg-[#FCF9F3]">
       <div className="border-b border-[#1A2842]/10 px-5 py-5">
         <div className="flex items-end justify-between">
           <div>
             <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
-              {category.type === "hitting" ? "Hitting" : "Pitching"}
+              {category.type === "hitting"
+                ? "Hitting"
+                : "Pitching"}
             </p>
+
             <h3 className="mt-1 text-2xl font-black tracking-tight">
               {category.shortLabel}
             </h3>
-            <p className="mt-1 text-sm text-[#687384]">{category.label}</p>
+
+            <p className="mt-1 text-sm text-[#687384]">
+              {category.label}
+            </p>
           </div>
 
           <span className="font-mono text-xs font-bold text-[#1F7A74]">
@@ -333,10 +496,13 @@ function LeaderboardCard({
             player={player}
             rank={index + 1}
             value={formatStat(
-              player.stats?.[category.key] as number | null,
+              player.stats?.[category.key] as
+                | number
+                | null,
               category.format
             )}
             hot={index === 0}
+            photoContext={photoContext}
           />
         ))
       )}
@@ -344,18 +510,139 @@ function LeaderboardCard({
       {ranked.length > 0 && (
         <div className="border-t border-[#1A2842]/10 px-5 py-4">
           <Link
-            href={`/players?sort=${String(category.key)}&dir=${
-              category.direction === "low" ? "asc" : "desc"
+            href={`/players?sort=${String(
+              category.key
+            )}&dir=${
+              category.direction === "low"
+                ? "asc"
+                : "desc"
             }`}
             className="text-sm font-semibold text-[#1A2842] transition hover:text-[#D85F46]"
           >
-            See the full {category.shortLabel} leaderboard →
+            See the full{" "}
+            {category.shortLabel} leaderboard →
           </Link>
         </div>
       )}
     </section>
   );
 }
+
+/* ───────────────────────── Spotlight ───────────────────────── */
+
+function Spotlight({
+  player,
+  team,
+  stats,
+  category,
+  view,
+}: {
+  player: PlayerRow;
+  team?: Team;
+  stats: [string, string][];
+  category: Category;
+  view: "hitting" | "pitching";
+}) {
+  const photoContext =
+    view === "pitching"
+      ? "pitching"
+      : "batting";
+
+  return (
+    <div className="relative min-h-[28rem] overflow-hidden bg-[#0B1423] text-white">
+      {/* Player photo */}
+
+      <div className="absolute inset-0">
+        <PlayerPhoto
+          playerId={player.id}
+          playerName={player.name}
+          context={photoContext}
+          objectFit="cover"
+          objectPosition="center top"
+          priority
+        />
+      </div>
+
+      {/* Dark gradient over image */}
+
+      <div className="absolute inset-0 bg-gradient-to-t from-[#08111F] via-[#08111F]/45 to-transparent" />
+
+      {/* Top label */}
+
+      <div className="absolute left-5 top-5 z-10">
+        <span className="inline-flex bg-[#D85F46] px-3 py-2 text-[0.65rem] font-black uppercase tracking-[0.16em] text-white">
+          #1 · {category.label}
+        </span>
+      </div>
+
+      {/* Team */}
+
+      <div className="absolute right-5 top-5 z-10">
+        {team && (
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95">
+            <img
+              src={teamLogo(team.id)}
+              alt=""
+              className="h-9 w-9 object-contain"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Player information */}
+
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 md:p-8">
+        <p className="text-[0.7rem] font-black uppercase tracking-[0.18em] text-[#59B3AD]">
+          {team?.name ?? "Free Agent"}
+          {" · "}
+          {player.position || "—"}
+        </p>
+
+        <h3 className="mt-2 text-4xl font-black tracking-[-0.045em] md:text-5xl">
+          {player.name}
+        </h3>
+
+        <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">
+          {view === "hitting"
+            ? `The current ${category.shortLabel} leader among Offshore Break's qualified hitters for the ${SEASON} season.`
+            : `The current ${category.shortLabel} leader among Offshore Break's qualified pitchers for the ${SEASON} season.`}
+        </p>
+
+        <div className="mt-6 grid max-w-xl grid-cols-4 border-y border-white/15">
+          {stats.map(([label, value], index) => (
+            <div
+              key={`${label}-${index}`}
+              className={`py-4 ${
+                index < stats.length - 1
+                  ? "border-r border-white/15"
+                  : ""
+              } ${index > 0 ? "pl-4" : ""}`}
+            >
+              <p className="font-mono text-xl font-black">
+                {value}
+              </p>
+
+              <p className="mt-1 text-[7px] font-black uppercase tracking-[0.15em] text-white/35">
+                {label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          href={`/players/${player.id}`}
+          className="mt-5 inline-block text-xs font-black uppercase tracking-[0.14em] text-white transition hover:text-[#D85F46]"
+        >
+          View player profile →
+        </Link>
+      </div>
+
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D85F46] via-[#59B3AD] to-[#6287C7]" />
+    </div>
+  );
+}
+
+/* ───────────────────────── Skeleton ───────────────────────── */
 
 function FrontOfPackSkeleton() {
   return (
@@ -365,6 +652,7 @@ function FrontOfPackSkeleton() {
       aria-label="Loading leaders"
     >
       <div className="min-h-[28rem] animate-pulse bg-[#1A2842]/10" />
+
       <div className="min-h-[28rem] animate-pulse bg-[#1A2842]/5" />
     </div>
   );
@@ -376,10 +664,20 @@ export default function LeadersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [view, setView] = useState<"hitting" | "pitching">("hitting");
-  const [teamFilter, setTeamFilter] = useState("All");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  const [view, setView] =
+    useState<"hitting" | "pitching">("hitting");
+
+  const [teamFilter, setTeamFilter] =
+    useState("All");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  /* ───────────────────────── Data ───────────────────────── */
 
   useEffect(() => {
     let cancelled = false;
@@ -389,14 +687,21 @@ export default function LeadersPage() {
       setError("");
 
       try {
-        const [playerData, statData, teamResult] = await Promise.all([
+        const [
+          playerData,
+          statData,
+          teamResult,
+        ] = await Promise.all([
           fetchAll<Player>((from, to) =>
             supabase
               .from("Player")
-              .select("id, name, team_id, position")
+              .select(
+                "id, name, team_id, position"
+              )
               .order("id")
               .range(from, to)
           ),
+
           fetchAll<PlayerStat>((from, to) =>
             supabase
               .from("PlayerStats")
@@ -405,23 +710,41 @@ export default function LeadersPage() {
               .order("player_id")
               .range(from, to)
           ),
-          supabase.from("Teams").select("id, name, abbreviation").order("name"),
+
+          supabase
+            .from("Teams")
+            .select(
+              "id, name, abbreviation"
+            )
+            .order("name"),
         ]);
 
-        if (teamResult.error) throw teamResult.error;
+        if (teamResult.error) {
+          throw teamResult.error;
+        }
 
         if (!cancelled) {
           setPlayers(playerData);
           setStats(statData);
-          setTeams((teamResult.data ?? []) as Team[]);
+          setTeams(
+            (teamResult.data ?? []) as Team[]
+          );
         }
       } catch (err) {
-        console.error("Failed to load leaderboard data:", err);
+        console.error(
+          "Failed to load leaderboard data:",
+          err
+        );
+
         if (!cancelled) {
-          setError("We couldn’t load the leaderboard. Please try again.");
+          setError(
+            "We couldn’t load the leaderboard. Please try again."
+          );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -432,15 +755,32 @@ export default function LeadersPage() {
     };
   }, []);
 
-  const thresholds = useMemo(() => getThresholds(stats), [stats]);
+  /* ───────────────────────── Maps ───────────────────────── */
+
+  const thresholds = useMemo(
+    () => getThresholds(stats),
+    [stats]
+  );
 
   const statMap = useMemo(
-    () => new Map(stats.map((stat) => [stat.player_id, stat])),
+    () =>
+      new Map(
+        stats.map((stat) => [
+          stat.player_id,
+          stat,
+        ])
+      ),
     [stats]
   );
 
   const teamMap = useMemo(
-    () => new Map(teams.map((team) => [team.id, team])),
+    () =>
+      new Map(
+        teams.map((team) => [
+          team.id,
+          team,
+        ])
+      ),
     [teams]
   );
 
@@ -454,73 +794,149 @@ export default function LeadersPage() {
     [players, statMap, teamMap]
   );
 
+  /* ───────────────────────── Filtering ───────────────────────── */
+
   const filteredPlayers = useMemo(
     () =>
       playerRows.filter(
-        (player) => teamFilter === "All" || player.team_id === teamFilter
+        (player) =>
+          teamFilter === "All" ||
+          player.team_id === teamFilter
       ),
     [playerRows, teamFilter]
   );
 
   const categories =
-    view === "hitting" ? hittingCategories : pitchingCategories;
-  const primaryCategory = categories[0];
+    view === "hitting"
+      ? hittingCategories
+      : pitchingCategories;
+
+  const primaryCategory =
+    categories[0];
 
   const primaryLeaders = useMemo(
-    () => rankPlayers([...filteredPlayers], primaryCategory, thresholds, 5),
-    [filteredPlayers, primaryCategory, thresholds]
+    () =>
+      rankPlayers(
+        [...filteredPlayers],
+        primaryCategory,
+        thresholds,
+        5
+      ),
+    [
+      filteredPlayers,
+      primaryCategory,
+      thresholds,
+    ]
   );
 
   const teamCount = useMemo(
     () =>
-      new Set(filteredPlayers.map((player) => player.team_id).filter(Boolean))
-        .size,
+      new Set(
+        filteredPlayers
+          .map(
+            (player) =>
+              player.team_id
+          )
+          .filter(Boolean)
+      ).size,
     [filteredPlayers]
   );
 
   const currentTeamLabel =
     teamFilter === "All"
       ? "MLB"
-      : teams.find((team) => team.id === teamFilter)?.abbreviation ?? "";
+      : teams.find(
+          (team) =>
+            team.id === teamFilter
+        )?.abbreviation ?? "";
 
-  const topPlayer = primaryLeaders[0];
+  const topPlayer =
+    primaryLeaders[0];
 
-  const spotlightStats: [string, string][] = topPlayer
-    ? view === "hitting"
-      ? [
-          [
-            primaryCategory.shortLabel,
-            formatStat(
-              topPlayer.stats?.[primaryCategory.key] as number | null,
-              primaryCategory.format
-            ),
-          ],
-          ["AVG", formatAverage(topPlayer.stats?.batting_avg)],
-          ["HR", formatNumber(topPlayer.stats?.home_runs)],
-          ["RBI", formatNumber(topPlayer.stats?.rbi)],
-        ]
-      : [
-          [
-            primaryCategory.shortLabel,
-            formatStat(
-              topPlayer.stats?.[primaryCategory.key] as number | null,
-              primaryCategory.format
-            ),
-          ],
-          ["IP", formatInnings(topPlayer.stats?.innings_pitched)],
-          ["K", formatNumber(topPlayer.stats?.strikeouts_pitched)],
-          ["WHIP", formatDecimal(topPlayer.stats?.whip)],
-        ]
-    : [];
+  /* ───────────────────────── Spotlight Stats ───────────────────────── */
+
+  const spotlightStats: [string, string][] =
+    topPlayer
+      ? view === "hitting"
+        ? [
+            [
+              primaryCategory.shortLabel,
+              formatStat(
+                topPlayer.stats?.[
+                  primaryCategory.key
+                ] as number | null,
+                primaryCategory.format
+              ),
+            ],
+            [
+              "AVG",
+              formatAverage(
+                topPlayer.stats
+                  ?.batting_avg
+              ),
+            ],
+            [
+              "HR",
+              formatNumber(
+                topPlayer.stats
+                  ?.home_runs
+              ),
+            ],
+            [
+              "RBI",
+              formatNumber(
+                topPlayer.stats?.rbi
+              ),
+            ],
+          ]
+        : [
+            [
+              primaryCategory.shortLabel,
+              formatStat(
+                topPlayer.stats?.[
+                  primaryCategory.key
+                ] as number | null,
+                primaryCategory.format
+              ),
+            ],
+            [
+              "IP",
+              formatInnings(
+                topPlayer.stats
+                  ?.innings_pitched
+              ),
+            ],
+            [
+              "K",
+              formatNumber(
+                topPlayer.stats
+                  ?.strikeouts_pitched
+              ),
+            ],
+            [
+              "WHIP",
+              formatDecimal(
+                topPlayer.stats?.whip
+              ),
+            ],
+          ]
+      : [];
+
+  /* ───────────────────────── Render ───────────────────────── */
 
   return (
     <main className="min-h-screen bg-[#F8F3EA] text-[#1A2842]">
+
+      {/* HERO */}
+
       <header className="border-b border-[#1A2842]/15">
         <div className="container-page py-10 md:py-14">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+
             <div>
               <div className="flex items-center gap-3">
                 <span className="h-[2px] w-8 bg-[#D85F46]" />
+
                 <p className="text-[0.75rem] font-bold uppercase tracking-[0.18em] text-[#1F7A74]">
                   Offshore Break · The numbers
                 </p>
@@ -531,21 +947,28 @@ export default function LeadersPage() {
               </h1>
 
               <p className="mt-4 max-w-xl text-base leading-7 text-[#687384]">
-                A running look at who’s setting the pace this season. Filter by
-                club, then follow any name to the full player profile.
+                A running look at who’s setting the pace this season.
+                Filter by club, then follow any name to the full player
+                profile.
               </p>
             </div>
 
             <div className="flex items-end gap-8 border-l border-[#1A2842]/15 pl-6">
               <div>
-                <p className="font-mono text-4xl font-bold">{SEASON}</p>
+                <p className="font-mono text-4xl font-bold">
+                  {SEASON}
+                </p>
+
                 <p className="mt-1 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#1F7A74]">
                   Season
                 </p>
               </div>
 
               <div>
-                <p className="font-mono text-4xl font-bold">{teamCount}</p>
+                <p className="font-mono text-4xl font-bold">
+                  {teamCount}
+                </p>
+
                 <p className="mt-1 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#1F7A74]">
                   Clubs represented
                 </p>
@@ -555,19 +978,28 @@ export default function LeadersPage() {
         </div>
       </header>
 
+      {/* FILTERS */}
+
       <section className="border-b border-[#1A2842]/15 bg-[#FCF9F3]">
         <div className="container-page flex flex-col gap-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+
           <div
             className="inline-flex border-b border-[#1A2842]/20"
             role="group"
             aria-label="Choose stat category"
           >
-            {(["hitting", "pitching"] as const).map((mode) => (
+            {(
+              ["hitting", "pitching"] as const
+            ).map((mode) => (
               <button
                 key={mode}
                 type="button"
-                aria-pressed={view === mode}
-                onClick={() => setView(mode)}
+                aria-pressed={
+                  view === mode
+                }
+                onClick={() =>
+                  setView(mode)
+                }
                 className={`border-b-2 px-5 py-3 text-base capitalize transition ${
                   view === mode
                     ? "border-[#D85F46] font-bold text-[#1A2842]"
@@ -590,13 +1022,24 @@ export default function LeadersPage() {
             <select
               id="team-filter"
               value={teamFilter}
-              onChange={(event) => setTeamFilter(event.target.value)}
+              onChange={(event) =>
+                setTeamFilter(
+                  event.target.value
+                )
+              }
               className="min-w-[16rem] border-b border-[#1A2842]/30 bg-transparent px-2 py-3 text-base outline-none focus:border-[#D85F46]"
             >
-              <option value="All">All teams</option>
+              <option value="All">
+                All teams
+              </option>
+
               {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.abbreviation} — {team.name}
+                <option
+                  key={team.id}
+                  value={team.id}
+                >
+                  {team.abbreviation} —{" "}
+                  {team.name}
                 </option>
               ))}
             </select>
@@ -604,13 +1047,20 @@ export default function LeadersPage() {
         </div>
       </section>
 
+      {/* ERROR */}
+
       {error && (
-        <div role="alert" className="container-page mt-8">
+        <div
+          role="alert"
+          className="container-page mt-8"
+        >
           <div className="border border-[#D85F46]/30 bg-[#D85F46]/5 px-6 py-5 text-sm font-medium text-[#A84432]">
             {error}
           </div>
         </div>
       )}
+
+      {/* FRONT OF PACK */}
 
       <section className="container-page py-12">
         <div className="mb-6 flex items-end justify-between">
@@ -618,13 +1068,18 @@ export default function LeadersPage() {
             <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
               The front of the pack
             </p>
+
             <h2 className="mt-1 text-3xl font-black tracking-tight">
-              {view === "hitting" ? "Best at the plate" : "On the mound"}
+              {view === "hitting"
+                ? "Best at the plate"
+                : "On the mound"}
             </h2>
           </div>
 
           <span className="font-mono text-xs font-bold text-[#1F7A74]">
-            {currentTeamLabel} · {SEASON} · {primaryCategory.shortLabel}
+            {currentTeamLabel} ·{" "}
+            {SEASON} ·{" "}
+            {primaryCategory.shortLabel}
           </span>
         </div>
 
@@ -632,40 +1087,66 @@ export default function LeadersPage() {
           <FrontOfPackSkeleton />
         ) : !topPlayer ? (
           <div className="border-t-2 border-[#1A2842] bg-[#FCF9F3] px-6 py-16 text-center">
-            <p className="text-xl font-bold">No qualifying leaders yet</p>
+            <p className="text-xl font-bold">
+              No qualifying leaders yet
+            </p>
+
             <p className="mt-2 text-sm text-[#687384]">
-              Try another club or check back as the season develops.
+              Try another club or check back as
+              the season develops.
             </p>
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
-            <SpotlightCard
-              key={`${view}-${teamFilter}-${topPlayer.id}`}
+
+            {/* FEATURED PLAYER */}
+
+            <Spotlight
               player={topPlayer}
               team={topPlayer.team}
-              badge={`#1 · ${primaryCategory.label}`}
               stats={spotlightStats}
-              action={actionForStat(String(primaryCategory.key))}
-              className="min-h-[28rem]"
+              category={primaryCategory}
+              view={view}
             />
 
+            {/* OTHER TOP LEADERS */}
+
             <div className="border-t-2 border-[#1A2842] bg-[#FCF9F3]">
-              {primaryLeaders.slice(1).map((player, index) => (
-                <LeaderRow
-                  key={player.id}
-                  player={player}
-                  rank={index + 2}
-                  value={formatStat(
-                    player.stats?.[primaryCategory.key] as number | null,
-                    primaryCategory.format
-                  )}
-                  size="lg"
-                />
-              ))}
+              {primaryLeaders
+                .slice(1)
+                .map(
+                  (
+                    player,
+                    index
+                  ) => (
+                    <LeaderRow
+                      key={player.id}
+                      player={player}
+                      rank={index + 2}
+                      value={formatStat(
+                        player.stats?.[
+                          primaryCategory.key
+                        ] as
+                          | number
+                          | null,
+                        primaryCategory.format
+                      )}
+                      size="lg"
+                      photoContext={
+                        view ===
+                        "pitching"
+                          ? "pitching"
+                          : "batting"
+                      }
+                    />
+                  )
+                )}
             </div>
           </div>
         )}
       </section>
+
+      {/* FULL LEADERBOARDS */}
 
       <section className="container-page pb-14">
         <div className="mb-6 flex items-end justify-between border-b border-[#1A2842]/15 pb-4">
@@ -673,8 +1154,11 @@ export default function LeadersPage() {
             <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
               The full picture
             </p>
+
             <h2 className="mt-1 text-3xl font-black tracking-tight">
-              {view === "hitting" ? "Hitting leaders" : "Pitching leaders"}
+              {view === "hitting"
+                ? "Hitting leaders"
+                : "Pitching leaders"}
             </h2>
           </div>
 
@@ -685,37 +1169,58 @@ export default function LeadersPage() {
 
         {loading ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: categories.length }, (_, index) => (
-              <div
-                key={index}
-                className="h-[22rem] animate-pulse border-t-2 border-[#1A2842]/20 bg-[#FCF9F3]"
-              />
-            ))}
+            {Array.from(
+              {
+                length:
+                  categories.length,
+              },
+              (_, index) => (
+                <div
+                  key={index}
+                  className="h-[22rem] animate-pulse border-t-2 border-[#1A2842]/20 bg-[#FCF9F3]"
+                />
+              )
+            )}
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {categories.map((category) => (
-              <LeaderboardCard
-                key={String(category.key)}
-                category={category}
-                players={filteredPlayers}
-                thresholds={thresholds}
-              />
-            ))}
+            {categories.map(
+              (category) => (
+                <LeaderboardCard
+                  key={String(
+                    category.key
+                  )}
+                  category={
+                    category
+                  }
+                  players={
+                    filteredPlayers
+                  }
+                  thresholds={
+                    thresholds
+                  }
+                />
+              )
+            )}
           </div>
         )}
       </section>
 
+      {/* METHODOLOGY */}
+
       <section className="border-t border-[#1A2842]/15 bg-[#FCF9F3]">
         <div className="container-page grid gap-8 py-10 md:grid-cols-3">
+
           <div>
             <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
               Hitting
             </p>
+
             <p className="mt-2 text-base leading-7 text-[#687384]">
-              Rate stats like OPS and AVG need at least {thresholds.minAb}{" "}
-              at-bats to qualify. Counting stats like home runs and RBI use
-              every player’s season total.
+              Rate stats like OPS and AVG need at
+              least {thresholds.minAb} at-bats to
+              qualify. Counting stats like home runs
+              and RBI use every player’s season total.
             </p>
           </div>
 
@@ -723,9 +1228,12 @@ export default function LeadersPage() {
             <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
               Pitching
             </p>
+
             <p className="mt-2 text-base leading-7 text-[#687384]">
-              ERA and WHIP need at least {thresholds.minIp} innings. Strikeouts,
-              wins, and innings pitched count every pitcher.
+              ERA and WHIP need at least{" "}
+              {thresholds.minIp} innings. Strikeouts,
+              wins, and innings pitched count every
+              pitcher.
             </p>
           </div>
 
@@ -733,10 +1241,12 @@ export default function LeadersPage() {
             <p className="text-[0.75rem] font-bold uppercase tracking-[0.16em] text-[#1F7A74]">
               Keep looking
             </p>
+
             <p className="mt-2 text-base leading-7 text-[#687384]">
-              Open a player profile for more season stats, or browse the full
-              player list.
+              Open a player profile for more season
+              stats, or browse the full player list.
             </p>
+
             <Link
               href="/players"
               className="mt-3 inline-block text-base font-semibold text-[#1A2842] transition hover:text-[#D85F46]"
@@ -744,6 +1254,7 @@ export default function LeadersPage() {
               Browse all players →
             </Link>
           </div>
+
         </div>
       </section>
     </main>

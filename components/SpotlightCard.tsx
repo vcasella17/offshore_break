@@ -1,6 +1,7 @@
 import Link from "next/link";
+import PlayerActionPhoto from "@/components/PlayerActionPhoto";
 import { teamLogo } from "@/lib/baseball";
-import { getPlayerPhoto, type PhotoAction } from "@/lib/playerPhotos";
+import type { PhotoAction } from "@/lib/playerPhotos";
 
 type SpotlightPlayer = {
   id: number;
@@ -13,19 +14,13 @@ type SpotlightTeam = {
   name: string;
 };
 
-const ALT_TEXT: Record<PhotoAction, string> = {
-  swing: "swinging",
-  pitching: "pitching",
-  baserunning: "running the bases",
-  fielding: "fielding",
-};
-
 /**
  * Big player card.
  *
- * The photo sits in its own "stage" above the text, shown with object-contain
- * so the whole player is always visible. A blurred copy of the same photo
- * fills the leftover space. Nothing is drawn on top of the photo.
+ * The photo sits in its own stage above the text, shown with object-contain
+ * so the whole player is visible. A blurred copy of the same photo fills the
+ * leftover space. If the photo can't be loaded, it falls back to a headshot
+ * and then to a faint team logo (see PlayerActionPhoto).
  */
 export default function SpotlightCard({
   player,
@@ -39,24 +34,22 @@ export default function SpotlightCard({
   team?: SpotlightTeam;
   badge: string;
   stats: [string, string][];
-  /** which kind of photo matches the stat being shown */
   action?: PhotoAction;
   className?: string;
 }) {
-  const photo = getPlayerPhoto(player.id, action);
-
   return (
     <Link
       href={`/players/${player.id}`}
       className={`group relative isolate flex flex-col overflow-hidden bg-[#0B1423] text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D85F46] ${className}`}
     >
-      {/* Top strip: badge + team logo (never over the photo) */}
+      {/* Top strip */}
       <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4 md:px-8">
         <span className="bg-[#D85F46] px-3 py-1.5 text-[0.7rem] font-bold uppercase tracking-[0.14em]">
           {badge}
         </span>
 
         {team && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={teamLogo(team.id)}
             alt=""
@@ -68,30 +61,12 @@ export default function SpotlightCard({
 
       {/* Photo stage */}
       <div className="relative min-h-[18rem] flex-1 overflow-hidden bg-[#101A2C]">
-        {photo ? (
-          <>
-            <img
-              src={photo.src}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-2xl"
-            />
-            <img
-              src={photo.src}
-              alt={`${player.name} ${ALT_TEXT[photo.action]}`}
-              className="absolute inset-0 h-full w-full object-contain transition duration-700 group-hover:scale-[1.02]"
-            />
-          </>
-        ) : (
-          team && (
-            <img
-              src={teamLogo(team.id)}
-              alt=""
-              aria-hidden="true"
-              className="absolute left-1/2 top-1/2 h-[70%] w-auto -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.12]"
-            />
-          )
-        )}
+        <PlayerActionPhoto
+          playerId={player.id}
+          playerName={player.name}
+          action={action}
+          teamId={team?.id}
+        />
       </div>
 
       {/* Info */}
@@ -113,7 +88,10 @@ export default function SpotlightCard({
         >
           {stats.map(([label, value], index) => (
             <div key={`${label}-${index}`}>
-              <p className="font-mono text-2xl font-bold sm:text-3xl">{value}</p>
+              <p className="font-mono text-2xl font-bold sm:text-3xl">
+                {value}
+              </p>
+
               <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[#59B3AD]">
                 {label}
               </p>
@@ -121,16 +99,10 @@ export default function SpotlightCard({
           ))}
         </div>
 
-        <div className="mt-5 flex items-center justify-between gap-4">
+        <div className="mt-5">
           <span className="text-sm font-semibold text-white/75 transition group-hover:text-white">
             View profile →
           </span>
-
-          {photo?.credit && (
-            <span className="text-right text-[0.65rem] text-white/40">
-              {photo.credit}
-            </span>
-          )}
         </div>
       </div>
 
