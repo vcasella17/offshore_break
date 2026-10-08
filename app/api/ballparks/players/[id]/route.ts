@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 /*
  * Add verified action-photo URLs here, keyed by MLB player ID.
+ *
  * Example:
  * 660271: "https://your-image-host.com/verified-action-photo.jpg",
  */
@@ -24,7 +25,11 @@ export async function GET(
 
   if (!Number.isInteger(playerId) || playerId <= 0) {
     return NextResponse.json(
-      { src: "", kind: "none", credit: "" },
+      {
+        src: "",
+        kind: "none",
+        credit: "",
+      },
       { status: 400 }
     );
   }
